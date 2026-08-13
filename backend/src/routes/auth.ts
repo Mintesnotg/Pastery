@@ -40,6 +40,7 @@ async function ensureBootstrapAdmin() {
 }
 
 authRouter.post("/login", async (req, res) => {
+  
   await ensureBootstrapAdmin();
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, "Invalid credentials");
