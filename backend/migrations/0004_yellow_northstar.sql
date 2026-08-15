@@ -1,0 +1,1 @@
+ALTER TABLE "payments" RENAME COLUMN "provider_payment_id" TO "provider_payment_Id";

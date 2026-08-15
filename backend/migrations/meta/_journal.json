@@ -29,6 +29,20 @@
       "when": 1786786021719,
       "tag": "0003_fearless_omega_flight",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786796075617,
+      "tag": "0004_yellow_northstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786796244514,
+      "tag": "0005_big_triathlon",
+      "breakpoints": true
     }
   ]
 }

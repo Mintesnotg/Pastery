@@ -175,7 +175,7 @@ export const payments = pgTable("payments", {
   orderId: integer("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
   paymentIntentId: uuid("payment_intent_ID").references(() => paymentIntents.id, { onDelete: "set null" }),
   provider: text("provider").notNull(),
-  providerPaymentId: text("provider_payment_id"),
+  providerPaymentId: text("provider_payment_Id"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   currency: text("currency").default("GBP").notNull(),
   capturedAt: timestamp("captured_at", { withTimezone: true }),
@@ -184,11 +184,11 @@ export const payments = pgTable("payments", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const testTable = pgTable("test_table", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+// export const testTable = pgTable("Test_table", {
+//   id: serial("id").primaryKey(),
+//   name: text("name").notNull(),
+//   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+// });
 
 export const paymentEvents = pgTable("payment_events", {
   id: uuid("id").defaultRandom().primaryKey(),
