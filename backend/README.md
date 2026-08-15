@@ -18,11 +18,23 @@ postgresql://postgres:postgres@127.0.0.1:5432/house_of_bread_prod
 
 1. Create the database in pgAdmin named `house_of_bread_prod`.
 2. Paste the connection string above into `backend/.env.local` as `DATABASE_URL=...`.
-3. Apply the SQL migration in `backend/migrations/0000_initial_schema.sql`.
-4. Run the backend seed script:
+3. Generate migrations from schema changes with:
+
+```bash
+cd backend
+npm run db:generate
+```
+
+4. Apply pending migrations with:
+
+```bash
+cd backend
+npm run db:migrate
+```
+
+5. Run the backend seed script:
 
 ```bash
 cd backend
 npm run seed
 ```
-

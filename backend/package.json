@@ -8,16 +8,21 @@
     "start": "node dist/server.js",
     "seed": "tsx src/db/seed.ts",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
-    "migrate": "tsx src/db/migrate.ts",
-    "db:apply": "npm run db:generate && npm run migrate"
+    "db:baseline": "tsx src/db/baseline.ts",
+    "db:migrate": "npm run db:baseline && drizzle-kit migrate --config drizzle.config.ts",
+    "migrate": "npm run db:migrate",
+    "db:apply": "npm run db:generate && npm run db:baseline && npm run db:migrate"
   },
   "dependencies": {
+    "@types/swagger-ui-express": "^4.1.8",
     "cors": "^2.8.5",
     "dotenv": "17.3.1",
     "drizzle-orm": "0.45.2",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "pg": "8.20.0",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
     "zod": "^4.1.8"
   },
   "devDependencies": {
