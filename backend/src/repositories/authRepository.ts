@@ -44,6 +44,15 @@ export async function getUserRoleKeys(userId: string) {
   return rows.map((row) => row.key as string);
 }
 
+export async function getUserRoleIds(userId: string) {
+  const rows = await db
+    .select({ id: roles.id })
+    .from(userRoles)
+    .innerJoin(roles, eq(userRoles.roleId, roles.id))
+    .where(eq(userRoles.userId, userId));
+  return rows.map((row) => row.id);
+}
+
 export async function getUserPermissions(userId: string) {
   const rows = await db
     .select({ key: permissions.key })

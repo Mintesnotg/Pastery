@@ -5,6 +5,7 @@ export type AuthedRequest = Request & {
   auth?: {
     userId: string;
     email: string;
+    roleIds: number[];
     roles: string[];
   };
 };
@@ -16,7 +17,7 @@ export function requireAuth(req: AuthedRequest, res: Response, next: NextFunctio
   }
   try {
     const session = verifySession(token);
-    req.auth = { userId: session.sub, email: session.email, roles: session.roles };
+    req.auth = { userId: session.sub, email: session.email, roleIds: session.roleIds ?? [], roles: session.roles };
     next();
   } catch {
     return res.status(401).json({ error: "Invalid session" });

@@ -1,10 +1,11 @@
 import crypto from "node:crypto";
-import jwt from "jsonwebtoken";
+import jwt, { type SignOptions } from "jsonwebtoken";
 import { env } from "../config/env.js";
 
 export type SessionPayload = {
   sub: string;
   email: string;
+  roleIds: number[];
   roles: string[];
 };
 
@@ -18,8 +19,8 @@ export function verifyPassword(password: string, salt: string, hash: string) {
 }
 
 export function signSession(payload: SessionPayload) {
-  const ttlSeconds = env.sessionTtlDays * 24 * 60 * 60;
-  return jwt.sign(payload, env.jwtSecret, { expiresIn: ttlSeconds });
+  const options: SignOptions = { expiresIn: env.jwtExpiresIn as SignOptions["expiresIn"] };
+  return jwt.sign(payload, env.jwtSecret, options);
 }
 
 export function verifySession(token: string) {

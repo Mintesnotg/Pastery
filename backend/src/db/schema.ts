@@ -184,11 +184,11 @@ export const payments = pgTable("payments", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-// export const testTable = pgTable("Test_table", {
-//   id: serial("id").primaryKey(),
-//   name: text("name").notNull(),
-//   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-// });
+export const testTable = pgTable("Test_table", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const paymentEvents = pgTable("payment_events", {
   id: uuid("id").defaultRandom().primaryKey(),

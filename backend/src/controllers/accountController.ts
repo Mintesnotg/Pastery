@@ -7,10 +7,9 @@ import { createNewUser, deleteUser, getUser, getUsers, updateUser } from "../ser
 
 const userSchema = z.object({
   email: z.string().email(),
-  passwordHash: z.string().min(1),
-  passwordSalt: z.string().min(1),
-  fullName: z.string().min(1),
-  active: z.boolean().optional(),
+  password: z.string().min(8),
+  roleIds: z.array(z.number().int().positive()).optional(),
+  fullName: z.string().min(1).optional(),
 });
 
 const permissionSchema = z.object({
@@ -48,8 +47,10 @@ export async function createUserController(req: Request, res: Response) {
   const parsed = userSchema.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, "Invalid user payload");
   const created = await createNewUser(parsed.data as any);
-  if (!created) return sendError(res, 409, "User already exists");
-  res.status(201).json(created);
+  if (!created) return sendError(res, 400, "Invalid user payload");
+  if ("conflict" in created) return sendError(res, 409, "User already exists");
+  if ("invalidRoleIds" in created) return sendError(res, 400, "Invalid role IDs");
+  res.status(201).json(created.user);
 }
 export async function getUserController(req: Request, res: Response) {
   const id = readStringId(req.params.id);

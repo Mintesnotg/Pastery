@@ -20,13 +20,34 @@ export const openapiSpec = {
   components: {
     schemas: {
       Error: { type: "object", properties: { error: { type: "string" }, detail: { nullable: true } } },
+      LoginRequest: {
+        type: "object",
+        required: ["email", "password"],
+        properties: {
+          email: { type: "string", format: "email" },
+          password: { type: "string" },
+        },
+      },
+      LoginResponse: {
+        type: "object",
+        required: ["token", "roleIds"],
+        properties: {
+          token: { type: "string", description: "JWT access token" },
+          roleIds: { type: "array", items: { type: "integer" } },
+        },
+      },
       User: {
         type: "object",
+        required: ["id", "email", "fullName", "active", "roleIds"],
         properties: {
           id: { type: "string", format: "uuid" },
           email: { type: "string" },
           fullName: { type: "string" },
           active: { type: "boolean" },
+          roleIds: { type: "array", items: { type: "integer" } },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+          lastLoginAt: { type: "string", format: "date-time", nullable: true },
         },
       },
       Role: {
@@ -41,12 +62,58 @@ export const openapiSpec = {
   },
   paths: {
     "/health": { get: { tags: ["Health"], responses: { 200: { description: "OK" } } } },
-    "/api/auth/login": { post: { tags: ["Auth"], requestBody: { required: true }, responses: { 200: { description: "Logged in" }, 401: { description: "Invalid credentials" } } } },
+    "/api/auth/login": {
+      post: {
+        tags: ["Auth"],
+        summary: "Login",
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/LoginRequest" } } },
+        },
+        responses: {
+          200: {
+            description: "Logged in",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/LoginResponse" } } },
+          },
+          400: { description: "Bad Request" },
+          401: { description: "Invalid credentials" },
+          500: { description: "Internal Server Error" },
+        },
+      },
+    },
     "/api/auth/me": { get: { tags: ["Auth"], responses: { 200: { description: "Session info" }, 401: { description: "Unauthenticated" } } } },
     "/api/auth/logout": { post: { tags: ["Auth"], responses: { 200: { description: "Logged out" } } } },
     "/api/users": {
       get: { tags: ["Users"], responses: { 200: { description: "List users" } } },
-      post: { tags: ["Users"], requestBody: { required: true }, responses: { 201: { description: "Created" }, 409: { description: "Conflict" } } },
+      post: {
+        tags: ["Users"],
+        summary: "Create user",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email", "password"],
+                properties: {
+                  email: { type: "string", format: "email" },
+                  password: { type: "string", minLength: 8 },
+                  roleIds: { type: "array", items: { type: "integer" } },
+                  fullName: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: "Created",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/User" } } },
+          },
+          400: { description: "Bad Request" },
+          409: { description: "Conflict" },
+        },
+      },
     },
     "/api/users/{id}": { get: { tags: ["Users"] }, put: { tags: ["Users"] }, delete: { tags: ["Users"] } },
     "/api/roles": { get: { tags: ["Roles"] }, post: { tags: ["Roles"] } },
