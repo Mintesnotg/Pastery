@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { login } from "../services/authService.js";
-import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
+import type { AuthedRequest } from "../middleware/auth.js";
 import { sendError } from "../utils/response.js";
 
 const loginSchema = z.object({
@@ -10,7 +10,6 @@ const loginSchema = z.object({
 });
 
 export async function loginController(req: Request, res: Response) {
-  // await ensureBootstrapAdmin();
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, "Invalid request");
   const result = await login(parsed.data.email, parsed.data.password);

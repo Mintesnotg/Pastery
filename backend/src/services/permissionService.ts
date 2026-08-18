@@ -1,6 +1,5 @@
-import { eq } from "drizzle-orm";
 import { permissions, RecordStatus } from "../db/schema.js";
-import { createPermission, deactivatePermissionById, findPermissionById, findPermissionByKey, listPermissions, updatePermissionById } from "../repositories/permissionRepository.js";
+import { createPermission, deactivatePermissionById, findPermissionById, findPermissionByKey, findPermissionsByRoleIds, listPermissions, updatePermissionById } from "../repositories/permissionRepository.js";
 
 export async function getPermissions() {
   return listPermissions();
@@ -22,4 +21,8 @@ export async function updatePermission(id: number, input: Partial<typeof permiss
 
 export async function deletePermission(id: number) {
   return deactivatePermissionById(id);
+}
+
+export async function getPermissionsByRoleIds(roleIds: number[]) {
+  return findPermissionsByRoleIds(roleIds);
 }

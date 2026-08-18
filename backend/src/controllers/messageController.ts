@@ -2,7 +2,6 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 import { getMessages, removeMessage, submitMessage } from "../services/messageService.js";
 import { sendError } from "../utils/response.js";
-import { requireAuth, requirePermission } from "../middleware/auth.js";
 
 const messageSchema = z.object({
   name: z.string().min(1),

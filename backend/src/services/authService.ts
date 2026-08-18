@@ -3,17 +3,6 @@ import { hashPassword, signSession, verifyPassword } from "../lib/auth.js";
 import { attachPermissionsToRole, attachRoleToUser, createPermissions, createRole, findPermissionsByKeys, findRoleByKey, getUserPermissions, getUserRoleIds, getUserRoleKeys } from "../repositories/authRepository.js";
 import { createUser, findActiveUserByEmail, findUserByEmail, updateUserLastLogin } from "../repositories/userRepository.js";
 
-const bootstrapPermissions = [
-  { key: "orders.read", name: "Read orders" },
-  { key: "orders.write", name: "Update orders" },
-  { key: "orders.delete", name: "Delete orders" },
-  { key: "messages.read", name: "Read messages" },
-  { key: "messages.delete", name: "Delete messages" },
-  { key: "users.manage", name: "Manage users" },
-];
-
-
-
 export async function login(email: string, password: string) {
   // await ensureBootstrapAdmin();
   const user = await findActiveUserByEmail(email);

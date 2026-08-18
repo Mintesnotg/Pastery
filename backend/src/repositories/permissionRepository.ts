@@ -1,5 +1,6 @@
-import { desc, eq } from "drizzle-orm";
-import { permissions, RecordStatus } from "../db/schema.js";
+import { desc, eq, inArray } from "drizzle-orm";
+import { db } from "../db/index.js";
+import { permissions, RecordStatus, rolePermissions } from "../db/schema.js";
 import { createGenericRepository } from "./genericRepository.js";
 
 const permissionRepository = createGenericRepository(permissions, permissions.id);
@@ -26,4 +27,20 @@ export function updatePermissionById(id: number, data: Partial<typeof permission
 
 export function deactivatePermissionById(id: number) {
   return permissionRepository.updateById(id, { status: RecordStatus.INACTIVE } as Partial<typeof permissions.$inferInsert>);
+}
+
+export async function findPermissionsByRoleIds(roleIds: number[]) {
+  const uniqueRoleIds = [...new Set(roleIds)];
+  if (uniqueRoleIds.length === 0) return [];
+
+  const rows = await db
+    .selectDistinct({ key: permissions.key })
+    .from(rolePermissions)
+    .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+    .where(inArray(rolePermissions.roleId, uniqueRoleIds));
+
+  return rows
+    .filter((row) => row.key !== null)
+    .map((row) => row.key)
+    .filter((key): key is string => typeof key === "string");
 }

@@ -13,12 +13,18 @@ import { rolesRouter } from "./routes/roles.js";
 import { usersRouter } from "./routes/users.js";
 import { swaggerHandler, swaggerMiddleware } from "./docs/swagger.js";
 import { openapiSpec } from "./docs/openapi.js";
+import { authenticationMiddleware } from "./middleware/auth.js";
+import { permissionsMiddleware } from "./middleware/permissions.js";
+import { authorizationMiddleware } from "./middleware/authorization.js";
 
 export const app = express();
 
 app.use(cors({ origin: env.corsOrigin, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+app.use(authenticationMiddleware);
+app.use(permissionsMiddleware);
+app.use(authorizationMiddleware);
 
 app.get("/", (_req, res) => res.json({ ok: true, service: "house-of-bread-backend" }));
 app.get("/openapi.json", (_req, res) => res.json(openapiSpec));
