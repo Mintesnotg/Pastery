@@ -17,6 +17,7 @@ export type AuthedRequest = Request & {
 const publicPrefixes = ["/", "/health", "/docs", "/openapi.json", "/api/auth/login"];
 
 function getSessionToken(req: Request) {
+ 
   return req.cookies?.session || req.header("authorization")?.replace(/^Bearer\s+/i, "");
 }
 
