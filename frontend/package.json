@@ -11,8 +11,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "cors": "^2.8.5",
+    "@tanstack/react-table": "^8.21.3",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
     "dotenv": "17.3.1",
     "drizzle-orm": "0.45.2",
     "express": "^5.1.0",
@@ -22,14 +23,15 @@
     "pg": "8.20.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
+    "sonner": "^2.0.8",
     "zod": "^4.1.8"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.19",
+    "@tailwindcss/postcss": "4.1.17",
     "@types/cookie-parser": "^1.4.8",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
-    "@tailwindcss/postcss": "4.1.17",
     "@types/node": "22.19.15",
     "@types/pg": "8.18.0",
     "@types/react": "19.2.14",
