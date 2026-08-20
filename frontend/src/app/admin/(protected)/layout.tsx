@@ -1,37 +1,18 @@
 "use client";
 
 import { useState, useEffect, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronRight, LogOut, Menu, X } from "lucide-react";
 import { sidebarConfig, type SidebarItem } from "@/config/sidebar.config";
-import { decodeJwt } from "@/lib/jwt";
+import { apiUrl } from "@/lib/api";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-function getUserPermissions(): Set<string> {
-  if (typeof window === "undefined") return new Set();
-  try {
-    const token =
-      document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("token="))
-        ?.split("=")[1] ??
-      localStorage.getItem("token") ??
-      "";
-    const decoded = decodeJwt(token);
-    // roles stored in token are treated as permission keys
-    const perms: string[] = decoded?.roles ?? [];
-    return new Set(perms);
-  } catch {
-    return new Set();
-  }
-}
-
-function hasPermission(permissions: Set<string>, permission: string): boolean {
-  // grant all when no permissions are set yet (development fallback)
-  if (permissions.size === 0) return true;
-  return permissions.has(permission);
+// TODO: replace with real permission check once backend integration is ready
+function hasPermission(_permissions: Set<string>, _permission: string): boolean {
+  return true;
 }
 
 function filterSidebar(
@@ -156,37 +137,45 @@ function Sidebar({
 
 // ─── layout ─────────────────────────────────────────────────────────────────
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default function ProtectedLayout({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [permissions, setPermissions] = useState<Set<string>>(new Set());
+  const [permissions] = useState<Set<string>>(new Set());
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    setPermissions(getUserPermissions());
-  }, []);
+    fetch(apiUrl("/api/auth/me"), { credentials: "include" })
+      .then((res) => {
+        if (!res.ok) router.replace("/admin/login");
+        else setAuthChecked(true);
+      })
+      .catch(() => router.replace("/admin/login"));
+  }, [router]);
+
+  const handleSignOut = async () => {
+    await fetch(apiUrl("/api/auth/logout"), { method: "POST", credentials: "include" });
+    router.replace("/admin/login");
+  };
+
+  if (!authChecked) return null;
 
   const visibleItems = filterSidebar(sidebarConfig, permissions);
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
-      {/* Logo / brand */}
       <div className="flex h-14 items-center border-b border-gray-200 px-4">
-        <span className="text-base font-semibold text-gray-800">
-          Admin Portal
-        </span>
+        <span className="text-base text-center font-semibold text-gray-800"> Staff Portal
+</span>
       </div>
 
-      {/* Nav */}
       <div className="flex-1 overflow-y-auto">
-        <Sidebar
-          items={visibleItems}
-          onNavigate={() => setMobileOpen(false)}
-        />
+        <Sidebar items={visibleItems} onNavigate={() => setMobileOpen(false)} />
       </div>
 
-      {/* Footer */}
       <div className="border-t border-gray-200 p-3">
         <button
           type="button"
+          onClick={() => void handleSignOut()}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900"
         >
           <LogOut className="h-4 w-4" />
@@ -222,7 +211,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Mobile top bar */}
         <header className="flex h-14 items-center gap-3 border-b border-gray-200 bg-white px-4 lg:hidden">
           <button
             type="button"
@@ -235,9 +223,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               <Menu className="h-5 w-5" />
             )}
           </button>
-          <span className="text-sm font-semibold text-gray-800">
-            Admin Portal
-          </span>
+          <span className="text-sm font-semibold text-gray-800">Admin Portal</span>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
