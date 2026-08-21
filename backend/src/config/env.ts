@@ -27,6 +27,7 @@ export const env = {
   databaseUrl: required("DATABASE_URL"),
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:3000",
   jwtSecret: required("JWT_SECRET", "dev-secret-change-me"),
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "15m",
   bootstrapEmail: process.env.ADMIN_BOOTSTRAP_EMAIL ?? "admin@houseofbread.local",
   bootstrapPassword: required("ADMIN_BOOTSTRAP_PASSWORD", "change-me-now"),
   sessionTtlDays: Number(process.env.SESSION_TTL_DAYS ?? 7),

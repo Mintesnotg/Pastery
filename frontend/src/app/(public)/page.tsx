@@ -337,19 +337,22 @@ export default async function HomePage() {
   );
 }
 
+
+type ProductCardItemProps = {
+  name: string;
+  category: string;
+  price: number;
+  description: string;
+  image: string;
+};
+
 function ProductCardItem({
   name,
   category,
   price,
   description,
   image,
-}: {
-  name: string;
-  category: string;
-  price: number;
-  description: string;
-  image: string;
-}) {
+}: ProductCardItemProps) {
   return (
     <div className="group flex flex-col overflow-hidden rounded-2xl border border-crust/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
       <div className="aspect-[4/3] overflow-hidden">

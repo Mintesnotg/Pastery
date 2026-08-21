@@ -13,6 +13,13 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
+export const recordStatusEnum = pgEnum("record_status", ["ACTIVE", "INACTIVE"]);
+export const RecordStatus = {
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
+} as const;
+export type RecordStatus = (typeof RecordStatus)[keyof typeof RecordStatus];
+
 export const orderStatusEnum = pgEnum("order_status", [
   "pending",
   "confirmed",
@@ -84,6 +91,7 @@ export const roles = pgTable("roles", {
   key: text("key").notNull(),
   name: text("name").notNull(),
   description: text("description"),
+  status: recordStatusEnum("status").default("ACTIVE").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({
   keyIdx: uniqueIndex("roles_key_unique").on(t.key),
@@ -94,6 +102,7 @@ export const permissions = pgTable("permissions", {
   key: text("key").notNull(),
   name: text("name").notNull(),
   description: text("description"),
+  status: recordStatusEnum("status").default("ACTIVE").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({
   keyIdx: uniqueIndex("permissions_key_unique").on(t.key),
@@ -164,15 +173,20 @@ export const paymentIntents = pgTable("payment_intents", {
 export const payments = pgTable("payments", {
   id: uuid("id").defaultRandom().primaryKey(),
   orderId: integer("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
-  paymentIntentId: uuid("payment_intent_id").references(() => paymentIntents.id, { onDelete: "set null" }),
+  paymentIntentId: uuid("payment_intent_ID").references(() => paymentIntents.id, { onDelete: "set null" }),
   provider: text("provider").notNull(),
-  providerPaymentId: text("provider_payment_id"),
+  providerPaymentId: text("provider_payment_Id"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   currency: text("currency").default("GBP").notNull(),
-  status: paymentStatusEnum("status").default("pending").notNull(),
   capturedAt: timestamp("captured_at", { withTimezone: true }),
   refundedAt: timestamp("refunded_at", { withTimezone: true }),
   rawPayload: jsonb("raw_payload").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const testTable = pgTable("Test_table", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

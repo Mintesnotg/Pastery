@@ -1,6 +1,6 @@
 {
-  "id": "ccec52ae-2816-47f3-8c23-e55ec68ee16c",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "c410845e-dae3-4fb4-a38b-674d21a16147",
+  "prevId": "e853647d-ff5d-4bd7-8ed5-b85c3c363d6d",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -466,8 +466,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "payment_intent_id": {
-          "name": "payment_intent_id",
+        "payment_intent_ID": {
+          "name": "payment_intent_ID",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -478,8 +478,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "provider_payment_id": {
-          "name": "provider_payment_id",
+        "provider_payment_Id": {
+          "name": "provider_payment_Id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -496,14 +496,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'GBP'"
-        },
-        "status": {
-          "name": "status",
-          "type": "payment_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
         },
         "captured_at": {
           "name": "captured_at",
@@ -547,12 +539,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "payments_payment_intent_id_payment_intents_id_fk": {
-          "name": "payments_payment_intent_id_payment_intents_id_fk",
+        "payments_payment_intent_ID_payment_intents_id_fk": {
+          "name": "payments_payment_intent_ID_payment_intents_id_fk",
           "tableFrom": "payments",
           "tableTo": "payment_intents",
           "columnsFrom": [
-            "payment_intent_id"
+            "payment_intent_ID"
           ],
           "columnsTo": [
             "id"
@@ -594,6 +586,14 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "record_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
         },
         "created_at": {
           "name": "created_at",
@@ -818,6 +818,14 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "record_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
         },
         "created_at": {
           "name": "created_at",
@@ -1101,6 +1109,14 @@
         "failed",
         "refunded",
         "cancelled"
+      ]
+    },
+    "public.record_status": {
+      "name": "record_status",
+      "schema": "public",
+      "values": [
+        "ACTIVE",
+        "INACTIVE"
       ]
     }
   },

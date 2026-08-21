@@ -9,7 +9,9 @@ export const productsRouter = Router();
 productsRouter.get("/", async (_req, res) => {
   try {
     const rows = await db.select().from(products).orderBy(desc(products.createdAt));
+    
     res.json(rows);
+    
   } catch (err) {
     sendError(res, 500, "Failed to load products", (err as Error).message);
   }

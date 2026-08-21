@@ -8,17 +8,33 @@ import { testimonialsRouter } from "./routes/testimonials.js";
 import { messagesRouter } from "./routes/messages.js";
 import { ordersRouter } from "./routes/orders.js";
 import { authRouter } from "./routes/auth.js";
+import { permissionsRouter } from "./routes/permissions.js";
+import { rolesRouter } from "./routes/roles.js";
+import { usersRouter } from "./routes/users.js";
+import { swaggerHandler, swaggerMiddleware } from "./docs/swagger.js";
+import { openapiSpec } from "./docs/openapi.js";
+import { authenticationMiddleware } from "./middleware/auth.js";
+import { permissionsMiddleware } from "./middleware/permissions.js";
+import { authorizationMiddleware } from "./middleware/authorization.js";
 
 export const app = express();
 
 app.use(cors({ origin: env.corsOrigin, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+app.use(authenticationMiddleware);
+app.use(permissionsMiddleware);
+app.use(authorizationMiddleware);
 
 app.get("/", (_req, res) => res.json({ ok: true, service: "house-of-bread-backend" }));
+app.get("/openapi.json", (_req, res) => res.json(openapiSpec));
+app.use("/docs", swaggerMiddleware, swaggerHandler);
 app.use("/health", healthRouter);
 app.use("/api/products", productsRouter);
 app.use("/api/testimonials", testimonialsRouter);
 app.use("/api/messages", messagesRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/users", usersRouter);
+app.use("/api/roles", rolesRouter);
+app.use("/api/permissions", permissionsRouter);
