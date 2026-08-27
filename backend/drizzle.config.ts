@@ -19,7 +19,7 @@ export default defineConfig({
   schema: "./src/db/schema.ts",
   out: "./migrations",
   dbCredentials: {
-
+    // Uses DATABASE_URL from .env.local; falls back to local postgres on port 5432 (db: house_of_bread_prod) for drizzle-kit migrations
     url: process.env.DATABASE_URL ?? "postgresql://postgres:postgres%402026%23@127.0.0.1:5432/house_of_bread_prod",
   },
 });
