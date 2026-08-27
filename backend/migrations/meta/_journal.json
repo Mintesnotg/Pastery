@@ -85,6 +85,20 @@
       "when": 1786964278013,
       "tag": "0011_talented_luminals",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1787832565343,
+      "tag": "0012_cute_scrambler",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1787832670601,
+      "tag": "0013_young_ares",
+      "breakpoints": true
     }
   ]
 }
