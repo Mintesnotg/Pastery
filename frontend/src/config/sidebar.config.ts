@@ -22,12 +22,7 @@ export type SidebarItem = {
 };
 
 export const sidebarConfig: SidebarItem[] = [
-  {
-    name: "Knowledge Assistant",
-    route: "/chatbot",
-    icon: MessageSquare,
-    permission: "chatbot.view",
-  },
+ 
   {
     name: "Account Management",
     icon: Shield,
@@ -54,18 +49,18 @@ export const sidebarConfig: SidebarItem[] = [
     ],
   },
   {
-    name: "Doc Management",
+    name: "Content Management",
     icon: FolderTree,
     permission: "doc_management.view",
     children: [
       {
-        name: "Doc Categories",
+        name: "Home page",
         icon: FolderClosedIcon,
         route: "/docs/categories",
         permission: "docs_categories.view",
       },
       {
-        name: "HR Documents",
+        name: "Product page",
         icon: FolderOpen,
         permission: "hr_docs.view",
         children: [
@@ -78,7 +73,7 @@ export const sidebarConfig: SidebarItem[] = [
         ],
       },
       {
-        name: "IT Documents",
+        name: "Header Page",
         icon: ShieldCheck,
         permission: "it_docs.view",
         children: [

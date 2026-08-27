@@ -12,7 +12,8 @@ import { apiUrl } from "@/lib/api";
 
 // TODO: replace with real permission check once backend integration is ready
 function hasPermission(_permissions: Set<string>, _permission: string): boolean {
-  return true;
+  
+    return true;
 }
 
 function filterSidebar(
@@ -134,8 +135,6 @@ function Sidebar({
     </nav>
   );
 }
-
-// ─── layout ─────────────────────────────────────────────────────────────────
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
