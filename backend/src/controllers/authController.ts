@@ -1,7 +1,9 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { login } from "../services/authService.js";
+import { getPermissionsByRoleIds } from "../services/permissionService.js";
 import type { AuthedRequest } from "../middleware/auth.js";
+import { findUserById } from "../repositories/userRepository.js";
 import { sendError } from "../utils/response.js";
 
 const loginSchema = z.object({
@@ -19,7 +21,20 @@ export async function loginController(req: Request, res: Response) {
 }
 
 export async function meController(req: AuthedRequest, res: Response) {
-  res.json({ authenticated: true, user: req.auth });
+  if (!req.auth) return sendError(res, 401, "Unauthenticated");
+
+  const roleIds = req.auth?.roleIds ?? [];
+  const permissions = await getPermissionsByRoleIds(roleIds);
+  const user = await findUserById(req.auth.userId);
+  const fullName = user?.fullName ?? null;
+
+  res.json({
+    authenticated: true,
+    user: req.auth,
+    fullName,
+    full_name: fullName,
+    permissions,
+  });
 }
 
 export async function logoutController(_req: Request, res: Response) {

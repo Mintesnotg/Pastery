@@ -17,7 +17,7 @@ import {
   MessageSquare,
   ShieldCheck,
 } from "lucide-react";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, withPermission } from "@/lib/api";
 
 type OrderItemInfo = {
   id?: number;
@@ -65,7 +65,10 @@ export default function AdminPage() {
   const fetchOrders = async () => {
     setLoadingOrders(true);
     try {
-      const res = await fetch(apiUrl("/api/orders"), { credentials: "include" });
+      const res = await fetch(
+        apiUrl("/api/orders"),
+        withPermission("view.orders", { credentials: "include" }),
+      );
       if (res.ok) setOrders(await res.json());
     } finally {
       setLoadingOrders(false);
@@ -75,7 +78,10 @@ export default function AdminPage() {
   const fetchMessages = async () => {
     setLoadingMessages(true);
     try {
-      const res = await fetch(apiUrl("/api/messages"), { credentials: "include" });
+      const res = await fetch(
+        apiUrl("/api/messages"),
+        withPermission("view.messages", { credentials: "include" }),
+      );
       if (res.ok) setMessages(await res.json());
     } finally {
       setLoadingMessages(false);
@@ -90,12 +96,15 @@ export default function AdminPage() {
   const handleUpdateStatus = async (orderId: number, newStatus: string) => {
     setProcessingId(orderId);
     try {
-      const res = await fetch(apiUrl(`/api/orders/${orderId}`), {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ status: newStatus }),
-      });
+      const res = await fetch(
+        apiUrl(`/api/orders/${orderId}`),
+        withPermission("view.orders", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ status: newStatus }),
+        }),
+      );
       if (res.ok) setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
     } finally {
       setProcessingId(null);
@@ -106,7 +115,10 @@ export default function AdminPage() {
     if (!confirm("Are you sure you want to delete this order?")) return;
     setProcessingId(orderId);
     try {
-      const res = await fetch(apiUrl(`/api/orders/${orderId}`), { method: "DELETE", credentials: "include" });
+      const res = await fetch(
+        apiUrl(`/api/orders/${orderId}`),
+        withPermission("view.orders", { method: "DELETE", credentials: "include" }),
+      );
       if (res.ok) setOrders((prev) => prev.filter((o) => o.id !== orderId));
     } finally {
       setProcessingId(null);
@@ -115,7 +127,10 @@ export default function AdminPage() {
 
   const handleDeleteMessage = async (msgId: number) => {
     if (!confirm("Are you sure you want to delete this message?")) return;
-    const res = await fetch(apiUrl(`/api/messages/${msgId}`), { method: "DELETE", credentials: "include" });
+    const res = await fetch(
+      apiUrl(`/api/messages/${msgId}`),
+      withPermission("view.messages", { method: "DELETE", credentials: "include" }),
+    );
     if (res.ok) setMessages((prev) => prev.filter((m) => m.id !== msgId));
   };
 

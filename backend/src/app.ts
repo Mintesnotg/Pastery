@@ -28,6 +28,7 @@ app.use(authorizationMiddleware);
 
 app.get("/", (_req, res) => res.json({ ok: true, service: "house-of-bread-backend" }));
 app.get("/openapi.json", (_req, res) => res.json(openapiSpec));
+app.get("/docs/swagger.json", (_req, res) => res.json(openapiSpec));
 app.use("/docs", swaggerMiddleware, swaggerHandler);
 app.use("/health", healthRouter);
 app.use("/api/products", productsRouter);
