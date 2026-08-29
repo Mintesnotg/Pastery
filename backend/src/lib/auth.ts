@@ -24,5 +24,12 @@ export function signSession(payload: SessionPayload) {
 }
 
 export function verifySession(token: string) {
-  return jwt.verify(token, env.jwtSecret) as SessionPayload;
+
+
+  try {
+    const decoded = jwt.verify(token, env.jwtSecret) as SessionPayload;
+    return decoded;
+  } catch {
+    throw new Error("Invalid session");
+  }
 }
