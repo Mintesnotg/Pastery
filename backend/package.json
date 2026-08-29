@@ -9,9 +9,9 @@
     "seed": "tsx src/db/seed.ts",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "db:baseline": "tsx src/db/baseline.ts",
-    "db:migrate": "npm run db:baseline && drizzle-kit migrate --config drizzle.config.ts",
+    "db:migrate": "npm run db:baseline && tsx src/db/migrate.ts",
     "migrate": "npm run db:migrate",
-    "db:apply": "npm run db:generate && npm run db:baseline && npm run db:migrate"
+    "db:apply": "npm run db:generate && npm run db:migrate"
   },
   "dependencies": {
     "@types/swagger-ui-express": "^4.1.8",

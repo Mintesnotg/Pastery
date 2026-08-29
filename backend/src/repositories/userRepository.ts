@@ -8,6 +8,10 @@ export async function findUserByEmail(email: string) {
   return userRepository.findOne(eq(users.email, email));
 }
 
+export async function findUserById(id: string) {
+  return userRepository.findById(id);
+}
+
 export async function findActiveUserByEmail(email: string) {
   return userRepository.findOne(and(eq(users.email, email), eq(users.active, true)));
 }

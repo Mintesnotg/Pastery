@@ -6,6 +6,7 @@ const globalForDb = globalThis as typeof globalThis & {
   __houseOfBreadPool?: Pool;
 };
 
+// Connection string comes from DATABASE_URL in .env / .env.local (no fallback — throws if missing)
 export const pool =
   globalForDb.__houseOfBreadPool ??
   new Pool({
