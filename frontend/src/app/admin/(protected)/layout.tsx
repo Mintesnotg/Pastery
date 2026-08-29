@@ -10,10 +10,8 @@ import { apiUrl } from "@/lib/api";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-// TODO: replace with real permission check once backend integration is ready
-function hasPermission(_permissions: Set<string>, _permission: string): boolean {
-  
-    return true;
+function hasPermission(permissions: Set<string>, permission: string): boolean {
+  return permissions.has(permission);
 }
 
 function filterSidebar(
@@ -138,15 +136,22 @@ function Sidebar({
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
+
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [permissions] = useState<Set<string>>(new Set());
+  const [permissions, setPermissions] = useState<Set<string>>(new Set());
+  const [fullName, setFullName] = useState("Staff Portal");
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     fetch(apiUrl("/api/auth/me"), { credentials: "include" })
-      .then((res) => {
+      .then(async (res) => {
         if (!res.ok) router.replace("/admin/login");
-        else setAuthChecked(true);
+        else {
+          const data = await res.json() as { permissions?: string[]; fullName?: string | null; full_name?: string | null };
+          setPermissions(new Set(data.permissions ?? []));
+          setFullName(data.fullName ?? data.full_name ?? "Staff Portal");
+          setAuthChecked(true);
+        }
       })
       .catch(() => router.replace("/admin/login"));
   }, [router]);
@@ -163,23 +168,11 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const sidebarContent = (
     <div className="flex h-full flex-col">
       <div className="flex h-14 items-center border-b border-gray-200 px-4">
-        <span className="text-base text-center font-semibold text-gray-800"> Staff Portal
-</span>
+        <span className="text-base font-semibold text-gray-800"> Welcome, {fullName}</span>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         <Sidebar items={visibleItems} onNavigate={() => setMobileOpen(false)} />
-      </div>
-
-      <div className="border-t border-gray-200 p-3">
-        <button
-          type="button"
-          onClick={() => void handleSignOut()}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign out
-        </button>
       </div>
     </div>
   );
@@ -187,7 +180,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 border-r border-gray-200 bg-white lg:block">
+      <aside className="hidden w-80 shrink-0 border-r  border-gray-200 bg-white lg:block">
         {sidebarContent}
       </aside>
 
@@ -210,11 +203,11 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
 
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 items-center gap-3 border-b border-gray-200 bg-white px-4 lg:hidden">
+        <header className="flex h-14 items-center justify-between gap-3 border-b border-gray-200 bg-white px-4">
           <button
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
-            className="rounded-lg p-1.5 text-gray-600 hover:bg-gray-100"
+            className="rounded-lg p-1.5 text-gray-600 hover:bg-gray-100 lg:hidden"
           >
             {mobileOpen ? (
               <X className="h-5 w-5" />
@@ -222,7 +215,19 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
               <Menu className="h-5 w-5" />
             )}
           </button>
-          <span className="text-sm font-semibold text-gray-800">Admin Portal</span>
+
+          <div className="min-w-0 flex-2">
+ 
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void handleSignOut()}
+            className="inline-flex items-center hover:cursor-pointer gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>

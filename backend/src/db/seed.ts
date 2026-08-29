@@ -81,12 +81,13 @@ async function main() {
   }).returning();
 
   const permissionRows = await db.insert(permissions).values([
-    { key: "orders.read", name: "Read Orders" },
-    { key: "orders.write", name: "Update Orders" },
-    { key: "orders.delete", name: "Delete Orders" },
-    { key: "messages.read", name: "Read Messages" },
-    { key: "messages.delete", name: "Delete Messages" },
-    { key: "users.manage", name: "Manage Users" },
+    { key: "view.orders", name: "View Orders" },
+    { key: "view.messages", name: "View Messages" },
+    { key: "view.users", name: "View Users" },
+    { key: "view.roles", name: "View Roles" },
+    { key: "view.permissions", name: "View Permissions" },
+    { key: "view.account_management", name: "View Account Management" },
+    { key: "view.content_management", name: "View Content Management" },
   ]).returning();
 
   await db.insert(userRoles).values({

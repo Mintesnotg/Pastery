@@ -26,62 +26,62 @@ export const sidebarConfig: SidebarItem[] = [
   {
     name: "Account Management",
     icon: Shield,
-    permission: "account_management.view",
+    permission: "view.account_management",
     children: [
       {
         name: "Users",
         route: "/users",
         icon: Users,
-        permission: "users.view",
+        permission: "view.users",
       },
       {
         name: "Roles",
         route: "/roles",
         icon: UserCog,
-        permission: "roles.view",
+        permission: "view.roles",
       },
       {
         name: "Permissions",
         route: "/permissions",
         icon: LockKeyhole,
-        permission: "permissions.view",
+        permission: "view.permissions",
       },
     ],
   },
   {
     name: "Content Management",
     icon: FolderTree,
-    permission: "doc_management.view",
+    permission: "view.content_management",
     children: [
       {
         name: "Home page",
         icon: FolderClosedIcon,
         route: "/docs/categories",
-        permission: "docs_categories.view",
+        permission: "view.home_content",
       },
       {
         name: "Product page",
         icon: FolderOpen,
-        permission: "hr_docs.view",
+        permission: "view.product_content",
         children: [
           {
-            name: "All HR Documents",
+            name: "All Cakes",
             route: "/docs/hr/",
             icon: FileText,
-            permission: "requirement_doc.view",
+            permission: "view.cake_content",
           },
         ],
       },
       {
         name: "Header Page",
         icon: ShieldCheck,
-        permission: "it_docs.view",
+        permission: "view.it_docs",
         children: [
           {
-            name: "All IT Documents",
+            name: "All Header Contents",
             route: "/docs/it",
             icon: KeyRound,
-            permission: "access_docs.view",
+            permission: "view.header_content",
           },
         ],
       },

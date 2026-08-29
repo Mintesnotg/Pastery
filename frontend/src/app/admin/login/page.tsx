@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, ArrowRight } from "lucide-react";
+import { Lock, ArrowRight, ArrowLeft } from "lucide-react";
 import { BreadSlice } from "@/components/BreadSlice";
 import { apiUrl } from "@/lib/api";
 
@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
             <Lock size={26} />
           </span>
           <h1 className="mt-4 font-display text-2xl font-bold text-crust-deep">Staff Portal</h1>
-          <p className="mt-1 text-sm text-crust/70">House of Bread London Admin Dashboard</p>
+          <p className="mt-1 text-sm text-crust/70">House of Bread London  Dashboard</p>
           <BreadSlice className="mx-auto mt-2 h-6 w-16 text-honey" />
         </div>
 
@@ -76,9 +76,17 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-crust py-3 font-semibold text-white transition hover:bg-crust-dark disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-crust py-3 font-semibold text-white transition hover:cursor-pointer hover:bg-crust-dark disabled:opacity-60"
           >
-            {loading ? "Signing in…" : <>Access Dashboard <ArrowRight size={16} /></>}
+            {loading ? "Signing in…" : <>Login  <ArrowRight size={16} /></>}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-crust/15 bg-cream py-3 font-semibold text-crust transition hover:cursor-pointer hover:bg-amber-50"
+          >
+           <ArrowLeft size={16} />Back to Home 
           </button>
         </form>
       </div>

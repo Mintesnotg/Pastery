@@ -18,11 +18,17 @@ const publicPrefixes = ["/", "/health", "/docs", "/openapi.json", "/api/auth/log
 
 function getSessionToken(req: Request) {
  
-  return req.cookies?.session || req.header("authorization")?.replace(/^Bearer\s+/i, "");
+  const cookieToken = req.cookies?.session || req.header("authorization")?.replace(/^Bearer\s+/i, "");
+
+  return cookieToken;
 }
 
 function isPublicRequest(req: Request) {
-  return publicPrefixes.some((prefix) => req.path === prefix || req.path.startsWith(`${prefix}/`));
+
+
+  const response=publicPrefixes.some((prefix) => req.path === prefix || req.path.startsWith(`${prefix}/`));
+
+  return response;
 }
 
 export function parseAuth(req: Request) {
@@ -38,6 +44,11 @@ export function parseAuth(req: Request) {
 }
 
 export function authenticationMiddleware(req: Request, res: Response, next: NextFunction) {
+ 
+ 
+  if (isPublicRequest(req)) {
+    return next();
+  }
   const token = getSessionToken(req);
   if (!token) {
     return next();
