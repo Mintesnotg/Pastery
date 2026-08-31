@@ -76,7 +76,11 @@ export async function deleteUserController(req: Request, res: Response) {
   res.json(deleted);
 }
 
-export async function listPermissionsController(_req: Request, res: Response) { res.json(await getPermissions()); }
+export async function listPermissionsController(req: Request, res: Response) {
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const pageSize = Math.max(1, Math.min(100, Number(req.query.pageSize) || 20));
+  res.json(await getPermissions({ page, pageSize }));
+}
 export async function createPermissionController(req: Request, res: Response) {
   const parsed = permissionSchema.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, "Invalid permission payload");
