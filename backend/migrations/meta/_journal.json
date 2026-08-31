@@ -99,6 +99,13 @@
       "when": 1787832670601,
       "tag": "0013_young_ares",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788199695826,
+      "tag": "0014_curvy_the_hunter",
+      "breakpoints": true
     }
   ]
 }

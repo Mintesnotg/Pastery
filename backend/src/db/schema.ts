@@ -77,6 +77,8 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   passwordHash: text("password_hash").notNull(),
   passwordSalt: text("password_salt").notNull(),
+  firstName: text("first_name").notNull().default(""),
+  lastName: text("last_name").notNull().default(""),
   fullName: text("full_name").notNull(),
   active: boolean("active").default(true).notNull(),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),

@@ -3,13 +3,27 @@ import { z } from "zod";
 import { sendError } from "../utils/response.js";
 import { createNewPermission, deletePermission, getPermission, getPermissions, updatePermission } from "../services/permissionService.js";
 import { createNewRole, deleteRole, getRole, getRolePermissionOptions, getRoleWithPermissions, getRoles, updateRole } from "../services/roleService.js";
-import { createNewUser, deleteUser, getUser, getUsers, updateUser } from "../services/accountUserService.js";
+import { createNewUser, deleteUser, getUser, getUsers, updateUser, type UpdateUserInput } from "../services/accountUserService.js";
 
 const userSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[a-zA-Z]/, "Password must contain at least one letter")
+    .regex(/\d/, "Password must contain at least one number")
+    .regex(/[^a-zA-Z\d]/, "Password must contain at least one special character"),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
   roleIds: z.array(z.number().int().positive()).optional(),
-  fullName: z.string().min(1).optional(),
+});
+
+// Separate update schema — no password, firstName/lastName always required
+const userUpdateSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email().optional(),
+  roleIds: z.array(z.number().int().positive()).optional(),
 });
 
 const permissionSchema = z.object({
@@ -25,7 +39,6 @@ const roleSchema = z.object({
   permissionIds: z.array(z.number().int().positive()).optional(),
 });
 
-const userUpdateSchema = userSchema.partial();
 const permissionUpdateSchema = permissionSchema.partial();
 const roleUpdateSchema = roleSchema.partial();
 
@@ -40,14 +53,17 @@ const readStringId = (value: string | string[] | undefined) => {
   return typeof raw === "string" && raw.length > 0 ? raw : null;
 };
 
-export async function listUsersController(_req: Request, res: Response) {
-  res.json(await getUsers());
+export async function listUsersController(req: Request, res: Response) {
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const pageSize = Math.max(1, Math.min(100, Number(req.query.pageSize) || 20));
+  res.json(await getUsers({ page, pageSize }));
 }
 export async function createUserController(req: Request, res: Response) {
   const parsed = userSchema.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, "Invalid user payload");
-  const created = await createNewUser(parsed.data as any);
+  const created = await createNewUser(parsed.data);
   if (!created) return sendError(res, 400, "Invalid user payload");
+  if ("weakPassword" in created) return sendError(res, 400, "Password must contain at least one letter, one number, and one special character");
   if ("conflict" in created) return sendError(res, 409, "User already exists");
   if ("invalidRoleIds" in created) return sendError(res, 400, "Invalid role IDs");
   res.status(201).json(created.user);
@@ -64,8 +80,9 @@ export async function updateUserController(req: Request, res: Response) {
   if (!id) return sendError(res, 400, "Invalid user ID");
   const parsed = userUpdateSchema.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, "Invalid user payload");
-  const updated = await updateUser(id, parsed.data as any);
+  const updated = await updateUser(id, parsed.data as UpdateUserInput);
   if (!updated) return sendError(res, 404, "User not found");
+  if ("invalidRoleIds" in updated) return sendError(res, 400, "Invalid role IDs");
   res.json(updated);
 }
 export async function deleteUserController(req: Request, res: Response) {
