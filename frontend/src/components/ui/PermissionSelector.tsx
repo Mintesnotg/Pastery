@@ -3,26 +3,29 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 
-export type RoleSelectorRole = {
+export type PermissionSelectorItem = {
   id: number;
   name: string;
+  key: string;
 };
 
-type RoleSelectorProps = {
-  roles: RoleSelectorRole[] | { data?: RoleSelectorRole[] };
+type PermissionSelectorProps = {
+  permissions: PermissionSelectorItem[];
   selectedIds: number[];
   onChange: (ids: number[]) => void;
 };
 
-export function RoleSelector({ roles = [], selectedIds, onChange }: RoleSelectorProps) {
-  debugger;
+export function PermissionSelector({ permissions, selectedIds, onChange }: PermissionSelectorProps) {
   const [search, setSearch] = useState("");
-  const roleList = Array.isArray(roles) ? roles : Array.isArray(roles.data) ? roles.data : [];
 
   const filtered = search.trim()
-    ? roleList.filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()))
-    : roleList;
-  debugger;
+    ? permissions.filter(
+        (p) =>
+          p.name.toLowerCase().includes(search.trim().toLowerCase()) ||
+          p.key.toLowerCase().includes(search.trim().toLowerCase()),
+      )
+    : permissions;
+
   const toggle = (id: number, checked: boolean) => {
     onChange(checked ? [...selectedIds, id] : selectedIds.filter((x) => x !== id));
   };
@@ -35,24 +38,24 @@ export function RoleSelector({ roles = [], selectedIds, onChange }: RoleSelector
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search roles..."
+          placeholder="Search permissions..."
           className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
         />
       </div>
       <div className="max-h-44 overflow-y-auto space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
         {filtered.length === 0 ? (
-          <p className="py-2 text-center text-sm text-gray-400">No roles found.</p>
+          <p className="py-2 text-center text-sm text-gray-400">No permissions found.</p>
         ) : (
-          filtered.map((role) => (
-            
-            <label key={role.id} className="flex cursor-pointer select-none items-center gap-2">
+          filtered.map((perm) => (
+            <label key={perm.id} className="flex cursor-pointer select-none items-center gap-2">
               <input
                 type="checkbox"
-                checked={selectedIds.includes(role.id)}
-                onChange={(e) => toggle(role.id, e.target.checked)}
+                checked={selectedIds.includes(perm.id)}
+                onChange={(e) => toggle(perm.id, e.target.checked)}
                 className="h-4 w-4 rounded border-gray-300 accent-crust"
               />
-              <span className="text-sm text-gray-700">{role.name}</span>
+              <span className="text-sm text-gray-700">{perm.name}</span>
+              <span className="ml-auto text-xs text-gray-400">{perm.key}</span>
             </label>
           ))
         )}

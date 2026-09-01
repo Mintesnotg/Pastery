@@ -174,13 +174,14 @@ export default function UsersPage() {
     setSubmitting(true);
     try {
       const isEdit = modalMode === "edit";
+      const permissionname = isEdit ? "edit.user" : "create.user";
       const url = isEdit ? apiUrl(`/api/users/${selectedUser!.id}`) : apiUrl("/api/users");
       const body = isEdit
         ? { firstName: form.firstName.trim(), lastName: form.lastName.trim(), ...(form.email.trim() ? { email: form.email.trim() } : {}), roleIds: selectedRoleIds }
         : { firstName: form.firstName.trim(), lastName: form.lastName.trim(), email: form.email.trim(), password: form.password, roleIds: selectedRoleIds };
       const res = await fetch(
         url,
-        withPermission("manage.users", {
+        withPermission(permissionname, {
           method: isEdit ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -206,7 +207,7 @@ export default function UsersPage() {
     try {
       const res = await fetch(
         apiUrl(`/api/users/${deleteTarget.id}`),
-        withPermission("manage.users", { method: "DELETE", credentials: "include" }),
+        withPermission("delete.user", { method: "DELETE", credentials: "include" }),
       );
       if (res.ok) {
         showToast("User deactivated successfully.", "success");

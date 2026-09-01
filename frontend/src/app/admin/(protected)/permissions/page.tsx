@@ -102,12 +102,13 @@ export default function PermissionsPage() {
     setSubmitting(true);
     try {
       const isEdit = modalMode === "edit";
+      const permissionname = isEdit? "edit.permission" : "create.permission";
       const url = isEdit
         ? apiUrl(`/api/permissions/${selectedPermission!.id}`)
         : apiUrl("/api/permissions");
       const res = await fetch(
         url,
-        withPermission("manage.permissions", {
+        withPermission(permissionname, {
           method: isEdit ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -137,7 +138,7 @@ export default function PermissionsPage() {
     try {
       const res = await fetch(
         apiUrl(`/api/permissions/${deleteTarget.id}`),
-        withPermission("manage.permissions", { method: "DELETE", credentials: "include" }),
+        withPermission("delete.permission", { method: "DELETE", credentials: "include" }),
       );
       if (res.ok) {
         showToast("Permission deactivated successfully.", "success");
@@ -197,6 +198,7 @@ export default function PermissionsPage() {
             year: "numeric",
           }),
       },
+
       {
         id: "actions",
         header: () => <span className="sr-only">Actions</span>,
