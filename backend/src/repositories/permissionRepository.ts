@@ -5,8 +5,16 @@ import { createGenericRepository } from "./genericRepository.js";
 
 const permissionRepository = createGenericRepository(permissions, permissions.id);
 
-export function listPermissions() {
-  return permissionRepository.findMany({ where: eq(permissions.status, RecordStatus.ACTIVE), orderBy: desc(permissions.createdAt) });
+export function listPermissions(options: { limit?: number; offset?: number } = {}) {
+  return permissionRepository.findMany({
+    where: eq(permissions.status, RecordStatus.ACTIVE),
+    orderBy: desc(permissions.createdAt),
+    ...options,
+  });
+}
+
+export function countActivePermissions() {
+  return permissionRepository.count(eq(permissions.status, RecordStatus.ACTIVE));
 }
 
 export function findPermissionById(id: number) {

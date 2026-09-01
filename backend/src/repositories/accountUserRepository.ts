@@ -6,8 +6,27 @@ import { createGenericRepository } from "./genericRepository.js";
 const userRepository = createGenericRepository(users, users.id);
 type DbLike = Pick<typeof db, "select" | "insert" | "delete" | "update">;
 
-export function listUsers() {
-  return userRepository.findMany({ where: eq(users.active, true), orderBy: desc(users.createdAt) });
+export function listUsers(options: { limit?: number; offset?: number } = {}) {
+  return userRepository.findMany({ where: eq(users.active, true), orderBy: desc(users.createdAt), ...options });
+}
+
+export function countActiveUsers() {
+  return userRepository.count(eq(users.active, true));
+}
+
+export async function findUserRoleIdsBatch(userIds: string[]): Promise<Map<string, number[]>> {
+  if (userIds.length === 0) return new Map();
+  const rows = await db
+    .select({ userId: userRoles.userId, roleId: userRoles.roleId })
+    .from(userRoles)
+    .where(inArray(userRoles.userId, userIds));
+  const map = new Map<string, number[]>();
+  for (const row of rows) {
+    const existing = map.get(row.userId) ?? [];
+    existing.push(row.roleId);
+    map.set(row.userId, existing);
+  }
+  return map;
 }
 
 export function findUserById(id: string) {

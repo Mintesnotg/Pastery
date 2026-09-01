@@ -1,8 +1,15 @@
 import { permissions, RecordStatus } from "../db/schema.js";
-import { createPermission, deactivatePermissionById, findPermissionById, findPermissionByKey, findPermissionsByRoleIds, listPermissions, updatePermissionById } from "../repositories/permissionRepository.js";
+import { countActivePermissions, createPermission, deactivatePermissionById, findPermissionById, findPermissionByKey, findPermissionsByRoleIds, listPermissions, updatePermissionById } from "../repositories/permissionRepository.js";
 
-export async function getPermissions() {
-  return listPermissions();
+export async function getPermissions(options: { page?: number; pageSize?: number } = {}) {
+  const page = Math.max(1, options.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 20));
+  const offset = (page - 1) * pageSize;
+  const [data, total] = await Promise.all([
+    listPermissions({ limit: pageSize, offset }),
+    countActivePermissions(),
+  ]);
+  return { data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) || 1 };
 }
 
 export async function getPermission(id: number) {
