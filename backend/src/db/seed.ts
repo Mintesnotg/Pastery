@@ -11,7 +11,7 @@ import {
   userRoles,
   users,
 } from "./schema.js";
-import { hashPassword } from "../lib/auth.js";
+import { hashPassword } from "../shared/lib/auth.js";
 
 async function main() {
   await db.execute(
