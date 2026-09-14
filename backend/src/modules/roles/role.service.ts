@@ -1,4 +1,4 @@
-import { roles } from "./role.schema.js";
+import type { Prisma } from "@prisma/client";
 import { RecordStatus } from "../../shared/db/enums.js";
 import {
   countActiveRoles,
@@ -47,7 +47,9 @@ async function checkPermissionIdsExist(ids: number[]): Promise<boolean> {
   return found.length === unique.length;
 }
 
-export async function createNewRole(input: typeof roles.$inferInsert & { permissionIds?: number[] }) {
+export async function createNewRole(
+  input: Prisma.RoleCreateInput & { permissionIds?: number[] },
+) {
   const existing = await findRoleByKey(input.key);
   if (existing) return null;
   const { permissionIds = [], ...roleData } = input;
@@ -55,7 +57,10 @@ export async function createNewRole(input: typeof roles.$inferInsert & { permiss
   return createRoleWithPermissions({ ...roleData, status: RecordStatus.ACTIVE }, permissionIds);
 }
 
-export async function updateRole(id: number, input: Partial<typeof roles.$inferInsert> & { permissionIds?: number[] }) {
+export async function updateRole(
+  id: number,
+  input: Prisma.RoleUpdateInput & { permissionIds?: number[] },
+) {
   const { permissionIds, ...roleData } = input;
   if (permissionIds !== undefined && !(await checkPermissionIdsExist(permissionIds))) {
     return { invalidPermissionIds: true as const };

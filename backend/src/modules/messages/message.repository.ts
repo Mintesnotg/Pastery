@@ -1,20 +1,18 @@
-import { desc } from "drizzle-orm";
-import { createGenericRepository } from "../../shared/repositories/generic.repository.js";
-import { messages } from "./message.schema.js";
+import type { Prisma } from "@prisma/client";
+import { prisma } from "../../db/index.js";
 
-const messageRepository = createGenericRepository(messages, messages.id);
-
-export async function createMessage(data: typeof messages.$inferInsert) {
-  return messageRepository.create(data);
+export async function createMessage(data: Prisma.MessageCreateInput) {
+  return prisma.message.create({ data });
 }
 
 export async function listMessages() {
-  return messageRepository.findMany({ orderBy: desc(messages.createdAt) });
+  return prisma.message.findMany({ orderBy: { createdAt: "desc" } });
 }
 
 export async function deleteMessageById(id: number) {
-  return messageRepository.deleteById(id);
+  return prisma.message.delete({ where: { id } }).catch(() => null);
 }
 
-export const findMessageById = messageRepository.findById;
-export const updateMessageById = messageRepository.updateById;
+export const findMessageById = (id: number) => prisma.message.findUnique({ where: { id } });
+export const updateMessageById = (id: number, data: Prisma.MessageUpdateInput) =>
+  prisma.message.update({ where: { id }, data }).catch(() => null);

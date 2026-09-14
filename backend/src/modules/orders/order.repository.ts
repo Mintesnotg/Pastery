@@ -1,37 +1,42 @@
-import { desc, eq } from "drizzle-orm";
-import { createGenericRepository } from "../../shared/repositories/generic.repository.js";
-import { orderItems, orders } from "./order.schema.js";
+import type { Prisma } from "@prisma/client";
+import { prisma } from "../../db/index.js";
 
-export type OrderInsertInput = typeof orders.$inferInsert;
-export type OrderItemInsertInput = typeof orderItems.$inferInsert;
-
-const orderRepository = createGenericRepository(orders, orders.id);
-const orderItemRepository = createGenericRepository(orderItems, orderItems.id);
+export type OrderInsertInput = Prisma.OrderUncheckedCreateInput;
+export type OrderItemInsertInput = Prisma.OrderItemUncheckedCreateInput;
 
 export async function createOrder(data: OrderInsertInput) {
-  return orderRepository.create(data);
+  return prisma.order.create({ data });
 }
 
 export async function createOrderItems(items: OrderItemInsertInput[]) {
-  return orderItemRepository.createMany(items);
+  if (items.length === 0) return [];
+  await prisma.orderItem.createMany({ data: items });
+  return prisma.orderItem.findMany({
+    where: { orderId: { in: [...new Set(items.map((i) => i.orderId))] } },
+  });
 }
 
 export async function listOrders() {
-  return orderRepository.findMany({ orderBy: desc(orders.createdAt) });
+  return prisma.order.findMany({ orderBy: { createdAt: "desc" } });
 }
 
 export async function listOrderItemsByOrderId(orderId: number) {
-  return orderItemRepository.findMany({ where: eq(orderItems.orderId, orderId) });
+  return prisma.orderItem.findMany({ where: { orderId } });
 }
 
 export async function updateOrderStatusById(id: number, status: string) {
-  return orderRepository.updateById(id, { status: status as OrderInsertInput["status"] });
+  return prisma.order
+    .update({
+      where: { id },
+      data: { status: status as never },
+    })
+    .catch(() => null);
 }
 
 export async function deleteOrderById(id: number) {
-  return orderRepository.deleteById(id);
+  return prisma.order.delete({ where: { id } }).catch(() => null);
 }
 
-export const findOrderById = orderRepository.findById;
+export const findOrderById = (id: number) => prisma.order.findUnique({ where: { id } });
 export const findOrdersByCustomerEmail = (email: string) =>
-  orderRepository.findMany({ where: eq(orders.email, email) });
+  prisma.order.findMany({ where: { email } });

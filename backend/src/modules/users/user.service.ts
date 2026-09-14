@@ -1,6 +1,6 @@
-import { db } from "../../db/index.js";
+import type { User } from "@prisma/client";
+import { prisma } from "../../db/index.js";
 import { hashPassword } from "../../shared/lib/auth.js";
-import { users } from "./user.schema.js";
 import {
   countActiveUsers,
   createUser,
@@ -42,7 +42,7 @@ export type UserDTO = {
   lastLoginAt: Date | null;
 };
 
-function toUserDTO(user: typeof users.$inferSelect, roleIds: number[]): UserDTO {
+function toUserDTO(user: User, roleIds: number[]): UserDTO {
   return {
     id: user.id,
     email: user.email,
@@ -103,7 +103,7 @@ export async function createNewUser(
   const passwordHash = hashPassword(password);
   const fullName = `${firstName} ${lastName}`.trim();
 
-  const created = await db.transaction(async (tx) => {
+  const created = await prisma.$transaction(async (tx) => {
     const user = await createUser(
       {
         email,
@@ -133,15 +133,13 @@ export async function updateUser(
   const lastName = input.lastName.trim();
   const fullName = `${firstName} ${lastName}`.trim();
 
-  const updateData: Partial<typeof users.$inferInsert> = {
+  const updated = await updateUserById(id, {
     firstName,
     lastName,
     fullName,
     updatedAt: new Date(),
     ...(input.email ? { email: input.email.trim().toLowerCase() } : {}),
-  };
-
-  const updated = await updateUserById(id, updateData);
+  });
   if (!updated) return null;
 
   if (input.roleIds !== undefined) {

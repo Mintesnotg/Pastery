@@ -1,14 +1,14 @@
-import { eq } from "drizzle-orm";
-import { createGenericRepository } from "../../shared/repositories/generic.repository.js";
-import { testimonials } from "./testimonial.schema.js";
-
-const testimonialRepository = createGenericRepository(testimonials, testimonials.id);
+import type { Prisma } from "@prisma/client";
+import { prisma } from "../../db/index.js";
 
 export async function listActiveTestimonials() {
-  return testimonialRepository.findMany({ where: eq(testimonials.active, true) });
+  return prisma.testimonial.findMany({ where: { active: true } });
 }
 
-export const findTestimonialById = testimonialRepository.findById;
-export const createTestimonial = testimonialRepository.create;
-export const updateTestimonialById = testimonialRepository.updateById;
-export const deleteTestimonialById = testimonialRepository.deleteById;
+export const findTestimonialById = (id: number) => prisma.testimonial.findUnique({ where: { id } });
+export const createTestimonial = (data: Prisma.TestimonialCreateInput) =>
+  prisma.testimonial.create({ data });
+export const updateTestimonialById = (id: number, data: Prisma.TestimonialUpdateInput) =>
+  prisma.testimonial.update({ where: { id }, data }).catch(() => null);
+export const deleteTestimonialById = (id: number) =>
+  prisma.testimonial.delete({ where: { id } }).catch(() => null);

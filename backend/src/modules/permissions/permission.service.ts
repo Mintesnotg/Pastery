@@ -1,4 +1,4 @@
-import { permissions } from "./permission.schema.js";
+import type { Prisma } from "@prisma/client";
 import { RecordStatus } from "../../shared/db/enums.js";
 import {
   countActivePermissions,
@@ -26,13 +26,13 @@ export async function getPermission(id: number) {
   return findPermissionById(id);
 }
 
-export async function createNewPermission(input: typeof permissions.$inferInsert) {
+export async function createNewPermission(input: Prisma.PermissionCreateInput) {
   const existing = await findPermissionByKey(input.key);
   if (existing) return null;
   return createPermission({ ...input, status: RecordStatus.ACTIVE });
 }
 
-export async function updatePermission(id: number, input: Partial<typeof permissions.$inferInsert>) {
+export async function updatePermission(id: number, input: Prisma.PermissionUpdateInput) {
   return updatePermissionById(id, input);
 }
 

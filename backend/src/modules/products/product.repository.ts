@@ -1,14 +1,13 @@
-import { desc } from "drizzle-orm";
-import { createGenericRepository } from "../../shared/repositories/generic.repository.js";
-import { products } from "./product.schema.js";
-
-const productRepository = createGenericRepository(products, products.id);
+import type { Prisma } from "@prisma/client";
+import { prisma } from "../../db/index.js";
 
 export async function listProducts() {
-  return productRepository.findMany({ orderBy: desc(products.createdAt) });
+  return prisma.product.findMany({ orderBy: { createdAt: "desc" } });
 }
 
-export const findProductById = productRepository.findById;
-export const createProduct = productRepository.create;
-export const updateProductById = productRepository.updateById;
-export const deleteProductById = productRepository.deleteById;
+export const findProductById = (id: number) => prisma.product.findUnique({ where: { id } });
+export const createProduct = (data: Prisma.ProductCreateInput) => prisma.product.create({ data });
+export const updateProductById = (id: number, data: Prisma.ProductUpdateInput) =>
+  prisma.product.update({ where: { id }, data }).catch(() => null);
+export const deleteProductById = (id: number) =>
+  prisma.product.delete({ where: { id } }).catch(() => null);
