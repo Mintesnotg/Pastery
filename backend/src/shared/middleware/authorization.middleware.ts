@@ -8,6 +8,7 @@ const publicRoutes: Array<{ method?: string; pattern: RegExp }> = [
   { method: "POST", pattern: /^\/api\/auth\/login(?:\/|$)/ },
   { method: "GET", pattern: /^\/api\/products(?:\/|$)/ },
   { method: "GET", pattern: /^\/api\/testimonials(?:\/|$)/ },
+  { method: "GET", pattern: /^\/api\/banners\/?$/ },
   { method: "POST", pattern: /^\/api\/messages(?:\/|$)/ },
   { method: "POST", pattern: /^\/api\/orders(?:\/|$)/ },
 ];

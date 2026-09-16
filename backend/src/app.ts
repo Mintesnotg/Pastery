@@ -15,6 +15,7 @@ import { ordersRouter } from "./modules/orders/order.routes.js";
 import { messagesRouter } from "./modules/messages/message.routes.js";
 import { productsRouter } from "./modules/products/product.routes.js";
 import { testimonialsRouter } from "./modules/testimonials/testimonial.routes.js";
+import { bannersRouter } from "./modules/banners/banner.routes.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 import "./shared/types/express.js";
 
@@ -34,6 +35,7 @@ app.use("/docs", swaggerMiddleware, swaggerHandler);
 app.use("/health", healthRouter);
 app.use("/api/products", productsRouter);
 app.use("/api/testimonials", testimonialsRouter);
+app.use("/api/banners", bannersRouter);
 app.use("/api/messages", messagesRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/auth", authRouter);

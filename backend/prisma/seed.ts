@@ -3,7 +3,7 @@ import { hashPassword } from "../src/shared/lib/auth.js";
 
 async function main() {
   await prisma.$executeRawUnsafe(
-    `TRUNCATE TABLE payment_events, payments, payment_intents, order_items, orders, role_permissions, user_roles, permissions, roles, users, messages, testimonials, products RESTART IDENTITY CASCADE`,
+    `TRUNCATE TABLE payment_events, payments, payment_intents, order_items, orders, role_permissions, user_roles, permissions, roles, users, messages, banners, testimonials, products RESTART IDENTITY CASCADE`,
   );
 
   const productRows = await Promise.all([
@@ -44,6 +44,47 @@ async function main() {
       },
     }),
   ]);
+
+  await prisma.banner.createMany({
+    data: [
+      {
+        title: "Summer Sourdough",
+        altText: "Fresh sourdough loaves on a wooden board",
+        imageUrl:
+          "https://images.pexels.com/photos/30890566/pexels-photo-30890566.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
+        ctaLabel: "Order Now",
+        ctaLink: "/order",
+        overlayHeading: "Baked Fresh Daily",
+        overlaySubheading: "Artisan bread from our North London kitchen",
+        active: true,
+        sortOrder: 1,
+      },
+      {
+        title: "Morning Pastries",
+        altText: "Golden croissants on a bakery counter",
+        imageUrl:
+          "https://images.pexels.com/photos/20002837/pexels-photo-20002837.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
+        ctaLabel: "View Menu",
+        ctaLink: "/products",
+        overlayHeading: "Fresh at 8 AM",
+        overlaySubheading: "All-butter croissants and seasonal bakes",
+        active: true,
+        sortOrder: 2,
+      },
+      {
+        title: "Celebration Cakes",
+        altText: "Decorated celebration cake with fresh flowers",
+        imageUrl:
+          "https://images.pexels.com/photos/32916204/pexels-photo-32916204.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
+        ctaLabel: "Enquire",
+        ctaLink: "/contact",
+        overlayHeading: "Made to Order",
+        overlaySubheading: "Custom cakes for weddings and special occasions",
+        active: false,
+        sortOrder: 3,
+      },
+    ],
+  });
 
   await prisma.testimonial.createMany({
     data: [
@@ -91,6 +132,7 @@ async function main() {
     { key: "view.permissions", name: "View Permissions" },
     { key: "view.account_management", name: "View Account Management" },
     { key: "view.content_management", name: "View Content Management" },
+    { key: "manage.banners", name: "Manage Banners" },
   ];
 
   await prisma.permission.createMany({ data: permissionKeys });

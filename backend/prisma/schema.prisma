@@ -65,6 +65,24 @@ model Testimonial {
   @@map("testimonials")
 }
 
+model Banner {
+  id                Int      @id @default(autoincrement())
+  title             String
+  altText           String   @map("alt_text")
+  imageUrl          String   @map("image_url")
+  ctaLabel          String   @map("cta_label")
+  ctaLink           String   @map("cta_link")
+  overlayHeading    String   @map("overlay_heading")
+  overlaySubheading String   @map("overlay_subheading")
+  active            Boolean  @default(true)
+  sortOrder         Int      @default(0) @map("sort_order")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([active, sortOrder], map: "banners_active_sort_idx")
+  @@map("banners")
+}
+
 model Message {
   id        Int      @id @default(autoincrement())
   name      String
