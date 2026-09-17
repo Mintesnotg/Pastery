@@ -23,6 +23,5 @@ export const navLinks = [
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact Us" },
   { href: "/order", label: "Order Online", cta: true },
-    { href: "/admin/login", label: "Login", cta: false },
-
+  { href: "/account", label: "Account", cta: false },
 ];

@@ -124,6 +124,14 @@ async function main() {
     },
   });
 
+  await prisma.role.create({
+    data: {
+      key: "customer",
+      name: "Customer",
+      description: "Default storefront customer account",
+    },
+  });
+
   const permissionKeys = [
     { key: "view.orders", name: "View Orders" },
     { key: "view.messages", name: "View Messages" },
@@ -132,7 +140,19 @@ async function main() {
     { key: "view.permissions", name: "View Permissions" },
     { key: "view.account_management", name: "View Account Management" },
     { key: "view.content_management", name: "View Content Management" },
-    { key: "manage.banners", name: "Manage Banners" },
+    { key: "view.banner", name: "View Banners" },
+    { key: "create.banner", name: "Create Banner" },
+    { key: "update.banner", name: "Update Banner" },
+    { key: "delete.banner", name: "Delete Banner" },
+    { key: "create.user", name: "Create User" },
+    { key: "update.user", name: "Update User" },
+    { key: "delete.user", name: "Delete User" },
+    { key: "create.role", name: "Create Role" },
+    { key: "update.role", name: "Update Role" },
+    { key: "delete.role", name: "Delete Role" },
+    { key: "create.permission", name: "Create Permission" },
+    { key: "update.permission", name: "Update Permission" },
+    { key: "delete.permission", name: "Delete Permission" },
   ];
 
   await prisma.permission.createMany({ data: permissionKeys });

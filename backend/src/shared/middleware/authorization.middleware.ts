@@ -11,6 +11,7 @@ const publicRoutes: Array<{ method?: string; pattern: RegExp }> = [
   { method: "GET", pattern: /^\/api\/banners\/?$/ },
   { method: "POST", pattern: /^\/api\/messages(?:\/|$)/ },
   { method: "POST", pattern: /^\/api\/orders(?:\/|$)/ },
+  { method: "POST", pattern: /^\/api\/users\/?$/ },
 ];
 
 const authOnlyRoutes: Array<{ method?: string; pattern: RegExp }> = [

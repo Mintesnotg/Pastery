@@ -28,7 +28,7 @@ type PaginatedPermissions = {
 type PermissionForm = { key: string; name: string; description: string };
 
 const emptyForm: PermissionForm = { key: "", name: "", description: "" };
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 5;
 
 export default function PermissionsPage() {
   const [permissions, setPermissions] = useState<Permission[]>([]);

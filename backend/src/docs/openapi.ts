@@ -149,19 +149,24 @@ export const openapiSpec = {
       get: { tags: ["Users"], responses: { 200: { description: "List users" } } },
       post: {
         tags: ["Users"],
-        summary: "Create user",
+        summary: "Create user (public registration forces customer role id 2 when unauthenticated)",
         requestBody: {
           required: true,
           content: {
             "application/json": {
               schema: {
                 type: "object",
-                required: ["email", "password"],
+                required: ["email", "password", "firstName", "lastName"],
                 properties: {
                   email: { type: "string", format: "email" },
                   password: { type: "string", minLength: 8 },
-                  roleIds: { type: "array", items: { type: "integer" } },
-                  fullName: { type: "string" },
+                  firstName: { type: "string" },
+                  lastName: { type: "string" },
+                  roleIds: {
+                    type: "array",
+                    items: { type: "integer" },
+                    description: "Ignored on public register; forced to [2]. Honored when authenticated admin creates a user.",
+                  },
                 },
               },
             },
@@ -199,7 +204,7 @@ export const openapiSpec = {
       post: {
         tags: ["Banners"],
         summary: "Create banner",
-        parameters: [{ name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "manage.banners" } }],
+        parameters: [{ name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "create.banner" } }],
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/BannerCreateRequest" } } },
@@ -217,7 +222,7 @@ export const openapiSpec = {
         tags: ["Banners"],
         summary: "Paginated admin banner list",
         parameters: [
-          { name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "manage.banners" } },
+          { name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "view.banner" } },
           { name: "page", in: "query", schema: { type: "integer" } },
           { name: "pageSize", in: "query", schema: { type: "integer" } },
           { name: "includeInactive", in: "query", schema: { type: "boolean" } },
@@ -230,18 +235,18 @@ export const openapiSpec = {
     "/api/banners/{id}": {
       get: {
         tags: ["Banners"],
-        parameters: [{ name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "manage.banners" } }],
+        parameters: [{ name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "view.banner" } }],
         responses: { 200: { description: "Banner", content: { "application/json": { schema: { $ref: "#/components/schemas/BannerAdmin" } } } } },
       },
       put: {
         tags: ["Banners"],
-        parameters: [{ name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "manage.banners" } }],
+        parameters: [{ name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "update.banner" } }],
         requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/BannerCreateRequest" } } } },
         responses: { 200: { description: "Updated", content: { "application/json": { schema: { $ref: "#/components/schemas/BannerAdmin" } } } } },
       },
       delete: {
         tags: ["Banners"],
-        parameters: [{ name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "manage.banners" } }],
+        parameters: [{ name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "delete.banner" } }],
         responses: { 204: { description: "Soft deleted" } },
       },
     },

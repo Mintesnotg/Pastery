@@ -20,7 +20,14 @@ export async function listUsersController(req: Request, res: Response) {
 export async function createUserController(req: Request, res: Response) {
   const parsed = userSchema.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, "Invalid user payload");
-  const created = await createNewUser(parsed.data);
+
+  // Public registration always gets customer role (id 2); ignore client roleIds.
+  const CUSTOMER_ROLE_ID = 2;
+  const payload = req.auth
+    ? parsed.data
+    : { ...parsed.data, roleIds: [CUSTOMER_ROLE_ID] };
+
+  const created = await createNewUser(payload);
   if (!created) return sendError(res, 400, "Invalid user payload");
   if ("weakPassword" in created)
     return sendError(
