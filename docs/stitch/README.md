@@ -47,11 +47,11 @@ Copy-paste these prompts into [Google Stitch](https://stitch.withgoogle.com) to 
 14. Order confirmation  
 15. Order tracking  
 16. Custom / bulk order form  
-17. Admin dashboard  
-18. Product management table  
-19. Add / Edit product  
-20. Banner manager  
-21. Blog / recipe manager  
-22. Reviews moderation  
-23. Stock overview  
-24. Product sales report  
+17. Website content dashboard (live season + post cake/bread)  
+18. Website product catalogue (cakes, breads, pastries)  
+19. Post / edit a cake or bread  
+20. Seasonal content (dynamic website render)  
+21. Homepage banners & page copy  
+22. Reviews on the website  
+23. Stock overview (kitchen, not CMS)  
+24. Product sales report (kitchen, not CMS)  
