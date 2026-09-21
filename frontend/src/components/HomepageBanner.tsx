@@ -170,7 +170,7 @@ export function HomepageBanner({ images }: HomepageBannerProps) {
       onTouchEnd={onTouchEnd}
     >
       {images.map((img, index) => {
-        debugger;
+
         const isActive = index === activeIndex;
         return (
           <div
