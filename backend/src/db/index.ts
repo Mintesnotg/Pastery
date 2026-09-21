@@ -1,20 +1,17 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
-import { env } from "../config/env.js";
+import { PrismaClient } from "@prisma/client";
 
-const globalForDb = globalThis as typeof globalThis & {
-  __houseOfBreadPool?: Pool;
+const globalForPrisma = globalThis as typeof globalThis & {
+  __houseOfBreadPrisma?: PrismaClient;
 };
 
-// Connection string comes from DATABASE_URL in .env / .env.local (no fallback — throws if missing)
-export const pool =
-  globalForDb.__houseOfBreadPool ??
-  new Pool({
-    connectionString: env.databaseUrl,
+export const prisma =
+  globalForPrisma.__houseOfBreadPrisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
 
 if (process.env.NODE_ENV !== "production") {
-  globalForDb.__houseOfBreadPool = pool;
+  globalForPrisma.__houseOfBreadPrisma = prisma;
 }
 
-export const db = drizzle(pool);
+export type DbClient = PrismaClient | Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];

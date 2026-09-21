@@ -3,9 +3,9 @@ import {
   FolderClosedIcon,
   FolderOpen,
   FolderTree,
+  Image,
   KeyRound,
   LockKeyhole,
-  MessageSquare,
   Shield,
   ShieldCheck,
   UserCog,
@@ -53,6 +53,12 @@ export const sidebarConfig: SidebarItem[] = [
     icon: FolderTree,
     permission: "view.content_management",
     children: [
+      {
+        name: "Banners",
+        route: "/banner",
+        icon: Image,
+        permission: "view.banner",
+      },
       {
         name: "Home page",
         icon: FolderClosedIcon,

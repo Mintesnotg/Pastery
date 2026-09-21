@@ -29,6 +29,12 @@ type DataTableProps<TData> = {
   pageSize?: number;
   toolbar?: ReactNode;
   emptyMessage?: string;
+  /** Enable server-side pagination; supply pageCount, pageIndex, onPageChange, and totalRows */
+  manualPagination?: boolean;
+  pageCount?: number;
+  pageIndex?: number;
+  onPageChange?: (pageIndex: number) => void;
+  totalRows?: number;
 };
 
 export function DataTable<TData>({
@@ -39,6 +45,11 @@ export function DataTable<TData>({
   pageSize = 10,
   toolbar,
   emptyMessage = "No results found.",
+  manualPagination = false,
+  pageCount,
+  pageIndex = 0,
+  onPageChange,
+  totalRows,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -50,7 +61,8 @@ export function DataTable<TData>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    // client-side pagination only when not in manual mode
+    ...(manualPagination ? {} : { getPaginationRowModel: getPaginationRowModel() }),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
@@ -168,29 +180,58 @@ export function DataTable<TData>({
 
       {/* Pagination */}
       <div className="flex items-center justify-between text-sm text-gray-600">
-        <span>
-          Page {table.getState().pagination.pageIndex + 1} of{" "}
-          {table.getPageCount() || 1} &mdash;{" "}
-          {table.getFilteredRowModel().rows.length} row(s)
-        </span>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="rounded p-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="rounded p-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
+        {manualPagination ? (
+          <>
+            <span>
+              Page {pageIndex + 1} of {pageCount ?? 1} &mdash;{" "}
+              {totalRows ?? data.length} row(s)
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onPageChange?.(pageIndex - 1)}
+                disabled={pageIndex <= 0}
+                className="rounded p-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onPageChange?.(pageIndex + 1)}
+                disabled={pageIndex >= (pageCount ?? 1) - 1}
+                className="rounded p-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <span>
+              Page {table.getState().pagination.pageIndex + 1} of{" "}
+              {table.getPageCount() || 1} &mdash;{" "}
+              {table.getFilteredRowModel().rows.length} row(s)
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                className="rounded p-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                className="rounded p-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

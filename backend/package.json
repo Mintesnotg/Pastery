@@ -6,32 +6,37 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "seed": "tsx src/db/seed.ts",
-    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
-    "db:baseline": "tsx src/db/baseline.ts",
-    "db:migrate": "npm run db:baseline && tsx src/db/migrate.ts",
-    "migrate": "npm run db:migrate",
-    "db:apply": "npm run db:generate && npm run db:migrate"
+    "postinstall": "prisma generate",
+    "seed": "prisma db seed",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:pull": "prisma db pull",
+    "migrate": "prisma migrate deploy"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.16.1",
     "@types/swagger-ui-express": "^4.1.8",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "17.3.1",
-    "drizzle-orm": "0.45.2",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "pg": "8.20.0",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
     "zod": "^4.1.8"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.19.15",
-    "@types/pg": "^8.18.0",
-    "drizzle-kit": "0.31.10",
+    "prisma": "^6.16.1",
     "tsx": "^4.20.5",
     "typescript": "^5.9.3"
   }

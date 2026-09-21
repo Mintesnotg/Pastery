@@ -16,6 +16,7 @@ import {
 import { getProducts, getFeatured } from "@/lib/products";
 import { CONTACT_INFO, GALLERY_IMAGES } from "@/data/products";
 import { BreadSlice } from "@/components/BreadSlice";
+import { HomepageBanner, type BannerImage } from "@/components/HomepageBanner";
 import { apiUrl } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,16 @@ const todayBakes = [
 export default async function HomePage() {
   const products = await getProducts();
   const featured = getFeatured(products);
+
+  let banners: BannerImage[] = [];
+  try {
+    const response = await fetch(apiUrl("/api/banners"), { cache: "no-store" });
+    if (response.ok) {
+      banners = await response.json();
+    }
+  } catch {
+    banners = [];
+  }
 
   let reviews: { name: string; role: string | null; content: string; rating: number }[] = [];
   try {
@@ -80,73 +91,77 @@ export default async function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-warm via-cream to-dough">
-        <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "radial-gradient(circle, #5c3d24 1.2px, transparent 1.4px)", backgroundSize: "26px 26px" }} />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:py-24">
-          <div className="animate-fade-up">
-            <p className="inline-flex items-center gap-2 rounded-full border border-crust/15 bg-white/60 px-4 py-1.5 text-sm font-semibold text-crust">
-              <Sparkles size={15} className="text-honey" /> Artisan Bakery · North London
-            </p>
-            <h1 className="mt-5 font-display text-4xl font-bold leading-tight text-crust-deep sm:text-5xl lg:text-6xl">
-              Freshly Baked
-              <span className="block text-crust">Every Day</span>
-            </h1>
-            <p className="mt-5 max-w-xl text-lg text-crust-deep/80">
-              From slow-fermented sourdough to flaky all-butter croissants, every bake is crafted
-              by hand in our London bakery and out of the oven while the city wakes up.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/order"
-                className="inline-flex items-center gap-2 rounded-full bg-crust px-7 py-3.5 text-base font-semibold text-white shadow-lg transition hover:bg-crust-dark"
-              >
-                Order Online <ChevronRight size={18} />
-              </Link>
-              <Link
-                href="/bread-pastries"
-                className="inline-flex items-center gap-2 rounded-full border-2 border-crust bg-transparent px-7 py-3.5 text-base font-semibold text-crust transition hover:bg-crust hover:text-white"
-              >
-                Explore the Bakes
-              </Link>
-            </div>
-            <div className="mt-8 flex flex-wrap items-center gap-5 text-sm text-crust-deep/70">
-              <div className="flex items-center gap-2">
-                <span className="flex gap-0.5 text-honey">{Array.from({ length: 5 }).map((_, i) => <Star key={i} size={16} className="fill-honey" />)}</span>
-                <span className="font-semibold">4.9 / 5</span>
+      {banners.length > 0 ? (
+        <HomepageBanner images={banners} />
+      ) : (
+        <section className="relative overflow-hidden bg-gradient-to-br from-warm via-cream to-dough">
+          <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "radial-gradient(circle, #5c3d24 1.2px, transparent 1.4px)", backgroundSize: "26px 26px" }} />
+          <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:py-24">
+            <div className="animate-fade-up">
+              <p className="inline-flex items-center gap-2 rounded-full border border-crust/15 bg-white/60 px-4 py-1.5 text-sm font-semibold text-crust">
+                <Sparkles size={15} className="text-honey" /> Artisan Bakery · North London
+              </p>
+              <h1 className="mt-5 font-display text-4xl font-bold leading-tight text-crust-deep sm:text-5xl lg:text-6xl">
+                Freshly Baked
+                <span className="block text-crust">Every Day</span>
+              </h1>
+              <p className="mt-5 max-w-xl text-lg text-crust-deep/80">
+                From slow-fermented sourdough to flaky all-butter croissants, every bake is crafted
+                by hand in our London bakery and out of the oven while the city wakes up.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href="/order"
+                  className="inline-flex items-center gap-2 rounded-full bg-crust px-7 py-3.5 text-base font-semibold text-white shadow-lg transition hover:bg-crust-dark"
+                >
+                  Order Online <ChevronRight size={18} />
+                </Link>
+                <Link
+                  href="/bread-pastries"
+                  className="inline-flex items-center gap-2 rounded-full border-2 border-crust bg-transparent px-7 py-3.5 text-base font-semibold text-crust transition hover:bg-crust hover:text-white"
+                >
+                  Explore the Bakes
+                </Link>
               </div>
-              <div className="flex items-center gap-2"><Clock size={16} className="text-crust" /> Open from 7 AM daily</div>
+              <div className="mt-8 flex flex-wrap items-center gap-5 text-sm text-crust-deep/70">
+                <div className="flex items-center gap-2">
+                  <span className="flex gap-0.5 text-honey">{Array.from({ length: 5 }).map((_, i) => <Star key={i} size={16} className="fill-honey" />)}</span>
+                  <span className="font-semibold">4.9 / 5</span>
+                </div>
+                <div className="flex items-center gap-2"><Clock size={16} className="text-crust" /> Open from 7 AM daily</div>
+              </div>
             </div>
-          </div>
 
-          <div className="relative animate-float">
-            <div className="overflow-hidden rounded-3xl shadow-2xl ring-1 ring-crust/15">
-              <img
-                src="https://images.pexels.com/photos/30826792/pexels-photo-30826792.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1200&w=900"
-                alt="Fresh artisan sourdough loaves at House of Bread London"
-                className="h-[460px] w-full object-cover"
-              />
-            </div>
-            <div className="absolute -left-4 top-8 hidden rounded-2xl bg-white/90 p-4 shadow-xl backdrop-blur sm:block">
-              <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-warm text-crust"><Wheat size={20} /></span>
-                <div>
-                  <p className="text-xs text-crust/60">Baked at dawn</p>
-                  <p className="font-display font-bold text-crust-deep">24h Fermentation</p>
+            <div className="relative animate-float">
+              <div className="overflow-hidden rounded-3xl shadow-2xl ring-1 ring-crust/15">
+                <img
+                  src="https://images.pexels.com/photos/30826792/pexels-photo-30826792.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1200&w=900"
+                  alt="Fresh artisan sourdough loaves at House of Bread London"
+                  className="h-[460px] w-full object-cover"
+                />
+              </div>
+              <div className="absolute -left-4 top-8 hidden rounded-2xl bg-white/90 p-4 shadow-xl backdrop-blur sm:block">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-warm text-crust"><Wheat size={20} /></span>
+                  <div>
+                    <p className="text-xs text-crust/60">Baked at dawn</p>
+                    <p className="font-display font-bold text-crust-deep">24h Fermentation</p>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="absolute -right-3 bottom-10 hidden rounded-2xl bg-white/90 p-4 shadow-xl backdrop-blur sm:block">
-              <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-warm text-crust"><Award size={20} /></span>
-                <div>
-                  <p className="text-xs text-crust/60">London pastry prize</p>
-                  <p className="font-display font-bold text-crust-deep">Best Croissant 2024</p>
+              <div className="absolute -right-3 bottom-10 hidden rounded-2xl bg-white/90 p-4 shadow-xl backdrop-blur sm:block">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-warm text-crust"><Award size={20} /></span>
+                  <div>
+                    <p className="text-xs text-crust/60">London pastry prize</p>
+                    <p className="font-display font-bold text-crust-deep">Best Croissant 2024</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Featured products */}
       <section className="py-16">
