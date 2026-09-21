@@ -48,8 +48,8 @@ function SidebarNavItem({
   const Icon = item.icon;
 
   const isActive = item.route
-    ? pathname === `/admin${item.route}` ||
-      pathname.startsWith(`/admin${item.route}/`)
+    ? pathname === `/dashboard${item.route}` ||
+      pathname.startsWith(`/dashboard${item.route}/`)
     : false;
 
   const hasChildren = item.children && item.children.length > 0;
@@ -59,8 +59,8 @@ function SidebarNavItem({
       const anyChildActive = item.children.some(
         (child) =>
           child.route &&
-          (pathname === `/admin${child.route}` ||
-            pathname.startsWith(`/admin${child.route}/`)),
+          (pathname === `/dashboard${child.route}` ||
+            pathname.startsWith(`/dashboard${child.route}/`)),
       );
       if (anyChildActive) setOpen(true);
     }
@@ -103,7 +103,7 @@ function SidebarNavItem({
 
   return (
     <Link
-      href={`/admin${item.route}`}
+      href={`/dashboard${item.route}`}
       style={{ paddingLeft }}
       onClick={onNavigate}
       className={`flex items-center gap-3 rounded-lg py-2 pr-3 text-sm font-medium transition-colors ${
@@ -139,26 +139,26 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [permissions, setPermissions] = useState<Set<string>>(new Set());
-  const [fullName, setFullName] = useState("Staff Portal");
+  const [fullName, setFullName] = useState("Dashboard");
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     fetch(apiUrl("/api/auth/me"), { credentials: "include" })
       .then(async (res) => {
-        if (!res.ok) router.replace("/admin/login");
+        if (!res.ok) router.replace("/account");
         else {
           const data = await res.json() as { permissions?: string[]; fullName?: string | null; full_name?: string | null };
           setPermissions(new Set(data.permissions ?? []));
-          setFullName(data.fullName ?? data.full_name ?? "Staff Portal");
+          setFullName(data.fullName ?? data.full_name ?? "Dashboard");
           setAuthChecked(true);
         }
       })
-      .catch(() => router.replace("/admin/login"));
+      .catch(() => router.replace("/account"));
   }, [router]);
 
   const handleSignOut = async () => {
     await fetch(apiUrl("/api/auth/logout"), { method: "POST", credentials: "include" });
-    router.replace("/admin/login");
+    router.replace("/account");
   };
 
   if (!authChecked) return null;

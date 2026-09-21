@@ -62,8 +62,8 @@ const emptyRegister: RegisterForm = {
 
 const REMEMBER_KEY = "hob.account.rememberEmail";
 
-function redirectAfterAuth(roleIds: number[]) {
-  return roleIds.includes(1) ? "/admin" : "/";
+function redirectAfterAuth() {
+  return "/dashboard";
 }
 
 function PasswordField({
@@ -141,7 +141,7 @@ function PasswordField({
 
 function LeftHeroPanel() {
   return (
-    <aside className="relative min-h-[280px] overflow-hidden lg:min-h-screen">
+    <aside className="relative h-[280px] shrink-0 overflow-hidden lg:sticky lg:top-0 lg:h-screen lg:self-start">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/account-hero.jpg"
@@ -254,11 +254,12 @@ function AccountPageInner() {
   };
 
   const performLogin = async (email: string, password: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
     const res = await fetch(apiUrl("/api/auth/login"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email: normalizedEmail, password }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -268,10 +269,7 @@ function AccountPageInner() {
           "Incorrect email or password. Please try again.",
       );
     }
-    const roleIds = Array.isArray((data as { roleIds?: number[] }).roleIds)
-      ? (data as { roleIds: number[] }).roleIds
-      : [];
-    router.replace(redirectAfterAuth(roleIds));
+    router.replace(redirectAfterAuth());
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -290,13 +288,14 @@ function AccountPageInner() {
     }
     setLoading(true);
     try {
+      const email = parsed.data.email.trim().toLowerCase();
       try {
-        if (rememberMe) localStorage.setItem(REMEMBER_KEY, parsed.data.email);
+        if (rememberMe) localStorage.setItem(REMEMBER_KEY, email);
         else localStorage.removeItem(REMEMBER_KEY);
       } catch {
         /* ignore */
       }
-      await performLogin(parsed.data.email, parsed.data.password);
+      await performLogin(email, parsed.data.password);
     } catch (err) {
       setApiError((err as Error).message);
       setLoginErrors((prev) => ({ ...prev, password: (err as Error).message }));
@@ -346,7 +345,7 @@ function AccountPageInner() {
   };
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)]">
+    <div className="min-h-screen lg:grid lg:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)] lg:items-start">
       <LeftHeroPanel />
 
       <section
