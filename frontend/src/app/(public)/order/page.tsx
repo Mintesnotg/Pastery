@@ -1,6 +1,6 @@
 import PageHeader from "@/components/PageHeader";
 import OrderPage from "./OrderPage";
-import { getProducts } from "@/lib/products";
+import { getProducts, toProductItem } from "@/lib/products";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,7 @@ export const metadata = {
 };
 
 export default async function OrderPageRoute() {
-  const products = await getProducts();
+  const products = (await getProducts()).map(toProductItem);
   return (
     <>
       <PageHeader

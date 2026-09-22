@@ -2,16 +2,16 @@ import Link from "next/link";
 import { ChevronRight, Store, Croissant, Soup } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import ProductCard from "@/components/ProductCard";
-import { getProducts } from "@/lib/products";
+import { getProducts, toProductItem } from "@/lib/products";
 import { PRODUCT_CATEGORIES } from "@/data/products";
 
 export const dynamic = "force-dynamic";
 
 export default async function BreadPastriesPage() {
   const products = await getProducts();
-  const bread = products.filter((p) => p.category === "Bread");
-  const pastries = products.filter((p) => p.category === "Pastry");
-  const cookies = products.filter((p) => p.category === "Cookies");
+  const bread = products.filter((p) => /bread/i.test(p.category.name)).map(toProductItem);
+  const pastries = products.filter((p) => /pastr/i.test(p.category.name)).map(toProductItem);
+  const cookies = products.filter((p) => /cookie/i.test(p.category.name)).map(toProductItem);
 
   return (
     <>
