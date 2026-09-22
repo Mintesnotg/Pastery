@@ -1,13 +1,11 @@
 import {
   FileText,
-  FolderClosedIcon,
-  FolderOpen,
   FolderTree,
   Image,
-  KeyRound,
   LockKeyhole,
+  Package,
   Shield,
-  ShieldCheck,
+  Tags,
   UserCog,
   Users,
   type LucideIcon,
@@ -22,7 +20,6 @@ export type SidebarItem = {
 };
 
 export const sidebarConfig: SidebarItem[] = [
- 
   {
     name: "Account Management",
     icon: Shield,
@@ -60,36 +57,22 @@ export const sidebarConfig: SidebarItem[] = [
         permission: "view.banner",
       },
       {
+        name: "Products",
+        route: "/products",
+        icon: Package,
+        permission: "view.product",
+      },
+      {
+        name: "Categories",
+        route: "/product-categories",
+        icon: Tags,
+        permission: "view.product_category",
+      },
+      {
         name: "Home page",
-        icon: FolderClosedIcon,
+        icon: FileText,
         route: "/docs/categories",
         permission: "view.home_content",
-      },
-      {
-        name: "Product page",
-        icon: FolderOpen,
-        permission: "view.product_content",
-        children: [
-          {
-            name: "All Cakes",
-            route: "/docs/hr/",
-            icon: FileText,
-            permission: "view.cake_content",
-          },
-        ],
-      },
-      {
-        name: "Header Page",
-        icon: ShieldCheck,
-        permission: "view.it_docs",
-        children: [
-          {
-            name: "All Header Contents",
-            route: "/docs/it",
-            icon: KeyRound,
-            permission: "view.header_content",
-          },
-        ],
       },
     ],
   },

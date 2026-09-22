@@ -13,10 +13,12 @@ import {
   Soup,
   Sparkles,
 } from "lucide-react";
-import { getProducts, getFeatured } from "@/lib/products";
+import { getProducts, getProductCategories } from "@/lib/products";
 import { CONTACT_INFO, GALLERY_IMAGES } from "@/data/products";
 import { BreadSlice } from "@/components/BreadSlice";
 import { HomepageBanner, type BannerImage } from "@/components/HomepageBanner";
+import { FeaturedBakesCarousel } from "@/components/home/FeaturedBakesCarousel";
+import { MoreFromCounter } from "@/components/home/MoreFromCounter";
 import { apiUrl } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -30,8 +32,11 @@ const todayBakes = [
 ];
 
 export default async function HomePage() {
-  const products = await getProducts();
-  const featured = getFeatured(products);
+  const [featured, counterProducts, categories] = await Promise.all([
+    getProducts({ isSpecial: true }),
+    getProducts({ isSpecial: false }),
+    getProductCategories(),
+  ]);
 
   let banners: BannerImage[] = [];
   try {
@@ -163,26 +168,8 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Featured products */}
-      <section className="py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-crust/60">Favourites</p>
-              <h2 className="mt-2 font-display text-3xl font-bold text-crust-deep sm:text-4xl">Our Featured Bakes</h2>
-              <BreadSlice className="mt-3 h-6 w-16 text-honey" />
-            </div>
-            <Link href="/order" className="inline-flex items-center gap-1 text-sm font-semibold text-crust transition hover:text-crust-dark">
-              Order now <ChevronRight size={16} />
-            </Link>
-          </div>
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {featured.map((p) => (
-              <ProductCardItem key={p.id} name={p.name} category={p.category} price={p.price} description={p.description} image={p.image} />
-            ))}
-          </div>
-        </div>
-      </section>
+      <FeaturedBakesCarousel products={featured} />
+      <MoreFromCounter initialProducts={counterProducts} categories={categories} />
 
       {/* Today's fresh bakes */}
       <section className="bg-crust-deep py-16 text-cream">
@@ -353,35 +340,3 @@ export default async function HomePage() {
 }
 
 
-type ProductCardItemProps = {
-  name: string;
-  category: string;
-  price: number;
-  description: string;
-  image: string;
-};
-
-function ProductCardItem({
-  name,
-  category,
-  price,
-  description,
-  image,
-}: ProductCardItemProps) {
-  return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border border-crust/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-      <div className="aspect-[4/3] overflow-hidden">
-        <img src={image} alt={name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
-      </div>
-      <div className="flex flex-1 flex-col p-4">
-        <span className="text-xs font-semibold uppercase tracking-wider text-crust">{category}</span>
-        <h3 className="mt-1 font-display text-lg font-bold text-crust-deep">{name}</h3>
-        <p className="mt-1 flex-1 text-sm text-crust-deep/70">{description}</p>
-        <div className="mt-3 flex items-center justify-between">
-          <span className="text-xl font-bold text-crust-dark">£{price.toFixed(2)}</span>
-          <Link href="/order" className="rounded-full bg-crust px-4 py-2 text-sm font-semibold text-white transition hover:bg-crust-dark">Order</Link>
-        </div>
-      </div>
-    </div>
-  );
-}

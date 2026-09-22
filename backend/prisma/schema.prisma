@@ -36,20 +36,41 @@ enum PaymentStatus {
   @@map("payment_status")
 }
 
-model Product {
-  id          Int         @id @default(autoincrement())
+model ProductCategory {
+  id          Int       @id @default(autoincrement())
   name        String
-  category    String
-  description String
-  price       Decimal     @db.Decimal(10, 2)
-  image       String
-  featured    Boolean     @default(false)
-  tags        String
-  active      Boolean     @default(true)
-  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  orderItems  OrderItem[]
+  description String?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy   String?   @map("created_by") @db.Uuid
+  updatedBy   String?   @map("updated_by") @db.Uuid
+  products    Product[]
+  createdByUser User?   @relation("ProductCategoryCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User?   @relation("ProductCategoryUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
 
+  @@map("product_categories")
+}
+
+model Product {
+  id          Int             @id @default(autoincrement())
+  name        String
+  description String
+  price       Decimal         @db.Decimal(10, 2)
+  image       String
+  isSpecial   Boolean         @default(false) @map("is_special")
+  categoryId  Int             @map("category_id")
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy   String?         @map("created_by") @db.Uuid
+  updatedBy   String?         @map("updated_by") @db.Uuid
+  category    ProductCategory @relation(fields: [categoryId], references: [id])
+  createdByUser User?         @relation("ProductCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User?         @relation("ProductUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@index([categoryId], map: "products_category_idx")
+  @@index([active, isSpecial], map: "products_active_special_idx")
   @@map("products")
 }
 
@@ -80,7 +101,7 @@ model Banner {
   updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([active, sortOrder], map: "banners_active_sort_idx")
-  @@map("banners")
+  @@map("banners") 
 }
 
 model Message {
@@ -108,6 +129,10 @@ model User {
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   userRoles    UserRole[]
+  productsCreated         Product[]         @relation("ProductCreatedBy")
+  productsUpdated         Product[]         @relation("ProductUpdatedBy")
+  productCategoriesCreated ProductCategory[] @relation("ProductCategoryCreatedBy")
+  productCategoriesUpdated ProductCategory[] @relation("ProductCategoryUpdatedBy")
 
   @@unique([email], map: "users_email_unique")
   @@map("users")
@@ -197,7 +222,6 @@ model OrderItem {
   metadata    Json     @default("{}")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   @@index([orderId], map: "order_items_order_idx")
   @@map("order_items")

@@ -14,7 +14,8 @@ export type ProductItem = {
   price: number;
   image: string;
   featured: boolean;
-  tags: string;
+  tags?: string;
+  isSpecial?: boolean;
 };
 
 const images = {

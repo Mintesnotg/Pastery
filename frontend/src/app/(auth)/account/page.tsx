@@ -335,8 +335,9 @@ function AccountPageInner() {
       if (!res.ok) {
         throw new Error((data as { error?: string }).error || "Registration failed");
       }
-      setSuccessMessage("Account created. Signing you in…");
-      await performLogin(parsed.data.email, parsed.data.password);
+      setSuccessMessage("Account created. Please sign in to continue.");
+      switchTab("login");
+      // await performLogin(parsed.data.email, parsed.data.password);
     } catch (err) {
       setApiError((err as Error).message);
     } finally {
