@@ -6,10 +6,13 @@ import { usePathname } from "next/navigation";
 import { ShoppingBasket, Menu, X } from "lucide-react";
 import Logo from "./Logo";
 import { navLinks } from "@/config/site";
+import { useCart } from "@/context/CartContext";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const { itemCount, hydrated } = useCart();
+  const showCount = hydrated && itemCount > 0;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-crust/10 bg-cream/90 backdrop-blur-md">
@@ -24,7 +27,14 @@ export default function Header() {
                 href={link.href}
                 className="ml-2 inline-flex items-center gap-2 rounded-full bg-crust px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-crust-dark"
               >
-                <ShoppingBasket size={16} />
+                <span className="relative inline-flex">
+                  <ShoppingBasket size={16} />
+                  {showCount && (
+                    <span className="absolute -top-2 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-honey px-1 text-[10px] font-bold text-crust-deep">
+                      {itemCount > 99 ? "99+" : itemCount}
+                    </span>
+                  )}
+                </span>
                 {link.label}
               </Link>
             ) : (
@@ -39,11 +49,12 @@ export default function Header() {
               >
                 {link.label}
               </Link>
-            )
+            ),
           )}
         </nav>
 
         <button
+          type="button"
           className="inline-flex items-center justify-center rounded-lg p-2 text-crust-deep hover:bg-warm lg:hidden"
           onClick={() => setOpen((o) => !o)}
           aria-label="Toggle menu"
@@ -52,7 +63,6 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Mobile menu */}
       {open && (
         <nav className="border-t border-crust/10 bg-cream px-4 py-4 lg:hidden">
           <div className="flex flex-col gap-1">
@@ -67,7 +77,14 @@ export default function Header() {
                     : "text-crust-deep hover:bg-warm"
                 }`}
               >
-                {link.label}
+                <span className="inline-flex items-center gap-2">
+                  {link.label}
+                  {link.cta && showCount && (
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-honey px-1.5 text-[11px] font-bold text-crust-deep">
+                      {itemCount > 99 ? "99+" : itemCount}
+                    </span>
+                  )}
+                </span>
                 {link.cta && <ShoppingBasket size={18} className="text-crust" />}
               </Link>
             ))}

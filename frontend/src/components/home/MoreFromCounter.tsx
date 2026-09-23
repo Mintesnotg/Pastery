@@ -11,6 +11,7 @@ import {
   Wheat,
 } from "lucide-react";
 import { Toast, useToast } from "@/components/ui/Toast";
+import { useCart } from "@/context/CartContext";
 import { apiUrl } from "@/lib/api";
 import type { StoreProduct } from "@/lib/products";
 
@@ -54,6 +55,7 @@ export function MoreFromCounter({ initialProducts, categories }: Props) {
   const [page, setPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
   const { toast, showToast, dismiss } = useToast();
+  const { addToCart } = useCart();
 
   const fetchProducts = useCallback(async (categoryId: number | "all") => {
     setLoading(true);
@@ -242,9 +244,10 @@ export function MoreFromCounter({ initialProducts, categories }: Props) {
                           </p>
                           <button
                             type="button"
-                            onClick={() =>
-                              showToast(`${p.name} added — we’ll confirm your order shortly.`, "success")
-                            }
+                            onClick={() => {
+                              addToCart(p);
+                              showToast(`${p.name} added to your basket.`, "success");
+                            }}
                             className="cursor-pointer rounded-full bg-[#3C2A21] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#2A1D16]"
                           >
                             Order now
