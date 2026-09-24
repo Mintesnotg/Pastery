@@ -89,8 +89,28 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    void fetchOrders();
-    void fetchMessages();
+    let cancelled = false;
+    (async () => {
+      try {
+        const me = await fetch(apiUrl("/api/auth/me"), { credentials: "include" });
+        if (!me.ok) return;
+        const data = await me.json();
+        const permissions: string[] = data.permissions ?? [];
+        if (!cancelled && !permissions.includes("view.orders")) {
+          window.location.replace("/dashboard/my-orders");
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+      if (!cancelled) {
+        void fetchOrders();
+        void fetchMessages();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleUpdateStatus = async (orderId: number, newStatus: string) => {

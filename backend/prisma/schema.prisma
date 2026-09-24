@@ -129,6 +129,7 @@ model User {
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   userRoles    UserRole[]
+  orders       Order[]
   productsCreated         Product[]         @relation("ProductCreatedBy")
   productsUpdated         Product[]         @relation("ProductUpdatedBy")
   productCategoriesCreated ProductCategory[] @relation("ProductCategoryCreatedBy")
@@ -189,24 +190,24 @@ model RolePermission {
 
 model Order {
   id             Int             @id @default(autoincrement())
+  userId         String          @map("user_id") @db.Uuid
   customerName   String          @map("customer_name")
   email          String
   phone          String?
   pickupDate     String          @map("pickup_date")
   pickupTime     String          @map("pickup_time")
   notes          String?
-  subtotal       Decimal         @db.Decimal(10, 2)
-  taxTotal       Decimal         @default(0) @map("tax_total") @db.Decimal(10, 2)
-  discountTotal  Decimal         @default(0) @map("discount_total") @db.Decimal(10, 2)
   total          Decimal         @db.Decimal(10, 2)
   currency       String          @default("GBP")
   status         OrderStatus     @default(pending)
   createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Restrict)
   items          OrderItem[]
   paymentIntents PaymentIntent[]
   payments       Payment[]
 
+  @@index([userId], map: "orders_user_idx")
   @@map("orders")
 }
 
@@ -215,11 +216,9 @@ model OrderItem {
   orderId     Int      @map("order_id")
   productId   Int?     @map("product_id")
   productName String   @map("product_name")
-  productSku  String?  @map("product_sku")
   unitPrice   Decimal  @map("unit_price") @db.Decimal(10, 2)
   quantity    Int
   lineTotal   Decimal  @map("line_total") @db.Decimal(10, 2)
-  metadata    Json     @default("{}")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 

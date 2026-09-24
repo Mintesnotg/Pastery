@@ -25,23 +25,25 @@ export type OrderInput = {
   total: number;
 };
 
-export async function getOrdersWithItems() {
-  const rows = await listOrders();
+export async function getOrdersWithItems(userId?: string) {
+  const rows = await listOrders(userId);
   return Promise.all(
-    rows.map(async (order: { id: number }) => ({ ...order, items: await listOrderItemsByOrderId(order.id) })),
+    rows.map(async (order: { id: number }) => ({
+      ...order,
+      items: await listOrderItemsByOrderId(order.id),
+    })),
   );
 }
 
-export async function placeOrder(input: OrderInput) {
-  const subtotal = input.items.reduce((sum, item) => sum + item.price * item.qty, 0);
+export async function placeOrder(input: OrderInput, userId: string) {
   const order = await createOrder({
+    userId,
     customerName: input.customerName,
     email: input.email,
     phone: input.phone || null,
     pickupDate: input.pickupDate,
     pickupTime: input.pickupTime,
     notes: input.notes || null,
-    subtotal: subtotal.toFixed(2),
     total: input.total.toFixed(2),
   });
   await createOrderItems(
@@ -52,7 +54,6 @@ export async function placeOrder(input: OrderInput) {
       unitPrice: item.price.toFixed(2),
       quantity: item.qty,
       lineTotal: (item.price * item.qty).toFixed(2),
-      metadata: { source: "checkout" },
     })),
   );
   return { success: true, order };

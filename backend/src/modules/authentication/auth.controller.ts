@@ -1,10 +1,11 @@
 import type { Request, Response } from "express";
 import { getPermissionsByRoleIds } from "../permissions/permission.service.js";
 import { findUserById } from "../users/user.repository.js";
+import { updateUser } from "../users/user.service.js";
 import { sendError } from "../../shared/utils/response.js";
 import type { AuthedRequest } from "./auth.middleware.js";
 import { login } from "./auth.service.js";
-import { loginSchema } from "./auth.validator.js";
+import { loginSchema, profileUpdateSchema } from "./auth.validator.js";
 
 export async function loginController(req: Request, res: Response) {
   const parsed = loginSchema.safeParse(req.body);
@@ -28,7 +29,37 @@ export async function meController(req: AuthedRequest, res: Response) {
     user: req.auth,
     fullName,
     full_name: fullName,
+    firstName: user?.firstName ?? "",
+    lastName: user?.lastName ?? "",
+    email: user?.email ?? req.auth.email,
     permissions,
+  });
+}
+
+export async function updateMeController(req: AuthedRequest, res: Response) {
+  if (!req.auth?.userId) return sendError(res, 401, "Unauthenticated");
+
+  const parsed = profileUpdateSchema.safeParse(req.body);
+  if (!parsed.success) return sendError(res, 400, "Invalid request");
+
+  const result = await updateUser(req.auth.userId, {
+    firstName: parsed.data.firstName,
+    lastName: parsed.data.lastName,
+    email: parsed.data.email,
+  });
+
+  if (!result) return sendError(res, 404, "User not found");
+  if ("invalidRoleIds" in result) return sendError(res, 400, "Invalid role IDs");
+
+  res.json({
+    success: true,
+    user: {
+      id: result.id,
+      email: result.email,
+      firstName: result.firstName,
+      lastName: result.lastName,
+      fullName: result.fullName,
+    },
   });
 }
 

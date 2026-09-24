@@ -62,7 +62,8 @@ const emptyRegister: RegisterForm = {
 
 const REMEMBER_KEY = "hob.account.rememberEmail";
 
-function redirectAfterAuth() {
+function redirectAfterAuth(next?: string | null) {
+  if (next && next.startsWith("/") && !next.startsWith("//")) return next;
   return "/dashboard";
 }
 
@@ -269,7 +270,7 @@ function AccountPageInner() {
           "Incorrect email or password. Please try again.",
       );
     }
-    router.replace(redirectAfterAuth());
+    router.replace(redirectAfterAuth(searchParams.get("next")));
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -335,9 +336,7 @@ function AccountPageInner() {
       if (!res.ok) {
         throw new Error((data as { error?: string }).error || "Registration failed");
       }
-      setSuccessMessage("Account created. Please sign in to continue.");
-      switchTab("login");
-      // await performLogin(parsed.data.email, parsed.data.password);
+      await performLogin(parsed.data.email, parsed.data.password);
     } catch (err) {
       setApiError((err as Error).message);
     } finally {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Minus,
@@ -12,7 +13,7 @@ import {
 } from "lucide-react";
 import { Toast, useToast } from "@/components/ui/Toast";
 import { useCart } from "@/context/CartContext";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, withPermission } from "@/lib/api";
 import type { StoreProduct } from "@/lib/products";
 
 type Category = { id: number; name: string; description: string | null };
@@ -23,11 +24,13 @@ type Props = {
 };
 
 export default function OrderPage({ products, categories }: Props) {
+  const router = useRouter();
   const { cart, addToCart, changeQty, removeItem, clearCart, total, itemCount } = useCart();
   const { toast, showToast, dismiss } = useToast();
   const [activeCategoryId, setActiveCategoryId] = useState<number | "all">("all");
   const [placed, setPlaced] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
   const [error, setError] = useState("");
   const [details, setDetails] = useState({
     customerName: "",
@@ -37,6 +40,36 @@ export default function OrderPage({ products, categories }: Props) {
     pickupTime: "",
     notes: "",
   });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(apiUrl("/api/auth/me"), { credentials: "include" });
+        if (!res.ok) {
+          if (!cancelled) router.replace("/account?next=/order");
+          return;
+        }
+        const data = await res.json();
+        if (cancelled) return;
+        const email = (data.user?.email as string | undefined) ?? "";
+        const name = (data.fullName as string | null | undefined) ?? "";
+        setDetails((prev) => ({
+          ...prev,
+          customerName: prev.customerName || name || "",
+          email: prev.email || email,
+        }));
+        setAuthChecking(false);
+      } catch {
+        if (!cancelled) router.replace("/account?next=/order");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const visible = useMemo(
     () =>
@@ -57,20 +90,31 @@ export default function OrderPage({ products, categories }: Props) {
     setSubmitting(true);
     setError("");
     try {
-      const res = await fetch(apiUrl("/api/orders"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...details,
-          items: cart.map((i) => ({
-            id: i.product.id,
-            name: i.product.name,
-            price: i.product.price,
-            qty: i.qty,
-          })),
-          total: Number(total.toFixed(2)),
+      const res = await fetch(
+        apiUrl("/api/orders"),
+        withPermission("create.order", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...details,
+            items: cart.map((i) => ({
+              id: i.product.id,
+              name: i.product.name,
+              price: i.product.price,
+              qty: i.qty,
+            })),
+            total: Number(total.toFixed(2)),
+          }),
         }),
-      });
+      );
+      if (res.status === 401) {
+        router.replace("/account?next=/order");
+        return;
+      }
+      if (res.status === 403) {
+        throw new Error("You do not have permission to place orders.");
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong.");
       setPlaced(true);
@@ -81,6 +125,14 @@ export default function OrderPage({ products, categories }: Props) {
       setSubmitting(false);
     }
   };
+
+  if (authChecking) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center px-4 py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-crust" aria-label="Checking login" />
+      </div>
+    );
+  }
 
   if (placed) {
     return (

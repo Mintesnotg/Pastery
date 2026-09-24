@@ -16,8 +16,11 @@ export async function createOrderItems(items: OrderItemInsertInput[]) {
   });
 }
 
-export async function listOrders() {
-  return prisma.order.findMany({ orderBy: { createdAt: "desc" } });
+export async function listOrders(userId?: string) {
+  return prisma.order.findMany({
+    where: userId ? { userId } : undefined,
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 export async function listOrderItemsByOrderId(orderId: number) {

@@ -11,13 +11,13 @@ const publicRoutes: Array<{ method?: string; pattern: RegExp }> = [
   { method: "GET", pattern: /^\/api\/testimonials(?:\/|$)/ },
   { method: "GET", pattern: /^\/api\/banners\/?$/ },
   { method: "POST", pattern: /^\/api\/messages(?:\/|$)/ },
-  { method: "POST", pattern: /^\/api\/orders(?:\/|$)/ },
   { method: "POST", pattern: /^\/api\/users\/?$/ },
 ];
 
 const authOnlyRoutes: Array<{ method?: string; pattern: RegExp }> = [
   { method: "GET", pattern: /^\/api\/auth\/me(?:\/|$)/ },
   { method: "POST", pattern: /^\/api\/auth\/logout(?:\/|$)/ },
+  { method: "GET", pattern: /^\/api\/orders\/?$/ },
 ];
 
 function matchRoute(method: string, path: string, routes: Array<{ method?: string; pattern: RegExp }>) {
