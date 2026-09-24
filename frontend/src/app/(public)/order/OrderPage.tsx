@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Plus,
   Minus,
@@ -10,15 +10,22 @@ import {
   Loader2,
   Croissant,
 } from "lucide-react";
-import type { ProductItem } from "@/data/products";
-import { PRODUCT_CATEGORIES } from "@/data/products";
+import { Toast, useToast } from "@/components/ui/Toast";
+import { useCart } from "@/context/CartContext";
 import { apiUrl } from "@/lib/api";
+import type { StoreProduct } from "@/lib/products";
 
-type CartItem = { product: ProductItem; qty: number };
+type Category = { id: number; name: string; description: string | null };
 
-export default function OrderPage({ products }: { products: ProductItem[] }) {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>("All");
+type Props = {
+  products: StoreProduct[];
+  categories: Category[];
+};
+
+export default function OrderPage({ products, categories }: Props) {
+  const { cart, addToCart, changeQty, removeItem, clearCart, total, itemCount } = useCart();
+  const { toast, showToast, dismiss } = useToast();
+  const [activeCategoryId, setActiveCategoryId] = useState<number | "all">("all");
   const [placed, setPlaced] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -31,38 +38,18 @@ export default function OrderPage({ products }: { products: ProductItem[] }) {
     notes: "",
   });
 
-  const categories = ["All", ...PRODUCT_CATEGORIES.map((c) => c.id)];
-  const visible =
-    activeCategory === "All"
-      ? products
-      : products.filter((p) => p.category === activeCategory);
+  const visible = useMemo(
+    () =>
+      activeCategoryId === "all"
+        ? products
+        : products.filter((p) => p.category.id === activeCategoryId),
+    [products, activeCategoryId],
+  );
 
-  const addToCart = (product: ProductItem) => {
-    setCart((prev) => {
-      const existing = prev.find((i) => i.product.id === product.id);
-      if (existing) {
-        return prev.map((i) =>
-          i.product.id === product.id ? { ...i, qty: i.qty + 1 } : i
-        );
-      }
-      return [...prev, { product, qty: 1 }];
-    });
+  const handleAdd = (product: StoreProduct) => {
+    addToCart(product);
+    showToast(`${product.name} added to your basket.`, "success");
   };
-
-  const changeQty = (id: number, delta: number) => {
-    setCart((prev) =>
-      prev
-        .map((i) =>
-          i.product.id === id ? { ...i, qty: i.qty + delta } : i
-        )
-        .filter((i) => i.qty > 0)
-    );
-  };
-
-  const removeItem = (id: number) =>
-    setCart((prev) => prev.filter((i) => i.product.id !== id));
-
-  const total = cart.reduce((sum, i) => sum + i.product.price * i.qty, 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +74,7 @@ export default function OrderPage({ products }: { products: ProductItem[] }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong.");
       setPlaced(true);
-      setCart([]);
+      clearCart();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -114,8 +101,9 @@ export default function OrderPage({ products }: { products: ProductItem[] }) {
             — pay at the counter. See you soon!
           </p>
           <button
+            type="button"
             onClick={() => setPlaced(false)}
-            className="mt-7 rounded-full bg-crust px-7 py-3 font-semibold text-white transition hover:bg-crust-dark"
+            className="mt-7 cursor-pointer rounded-full bg-crust px-7 py-3 font-semibold text-white transition hover:bg-crust-dark"
           >
             Make Another Order
           </button>
@@ -126,20 +114,33 @@ export default function OrderPage({ products }: { products: ProductItem[] }) {
 
   return (
     <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-3 lg:px-8">
-      {/* Products */}
+      <Toast toast={toast} onDismiss={dismiss} />
+
       <div className="lg:col-span-2">
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveCategoryId("all")}
+            className={`cursor-pointer rounded-full px-4 py-2 text-sm font-semibold transition ${
+              activeCategoryId === "all"
+                ? "bg-crust text-white"
+                : "bg-white text-crust-deep hover:bg-warm"
+            }`}
+          >
+            All Bakes
+          </button>
           {categories.map((c) => (
             <button
-              key={c}
-              onClick={() => setActiveCategory(c)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                activeCategory === c
+              key={c.id}
+              type="button"
+              onClick={() => setActiveCategoryId(c.id)}
+              className={`cursor-pointer rounded-full px-4 py-2 text-sm font-semibold transition ${
+                activeCategoryId === c.id
                   ? "bg-crust text-white"
                   : "bg-white text-crust-deep hover:bg-warm"
               }`}
             >
-              {c === "All" ? "All Bakes" : PRODUCT_CATEGORIES.find((pc) => pc.id === c)?.label ?? c}
+              {c.name}
             </button>
           ))}
         </div>
@@ -151,17 +152,21 @@ export default function OrderPage({ products }: { products: ProductItem[] }) {
               className="group flex gap-4 overflow-hidden rounded-2xl border border-crust/10 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
             >
               <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
               </div>
               <div className="flex flex-1 flex-col">
-                <span className="text-xs font-semibold uppercase tracking-wider text-crust">{p.category}</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-crust">
+                  {p.category.name}
+                </span>
                 <h3 className="font-display font-bold text-crust-deep">{p.name}</h3>
                 <p className="mt-0.5 line-clamp-2 text-xs text-crust-deep/60">{p.description}</p>
                 <div className="mt-auto flex items-center justify-between pt-2">
                   <span className="font-bold text-crust-dark">£{p.price.toFixed(2)}</span>
                   <button
-                    onClick={() => addToCart(p)}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-crust text-white transition hover:bg-crust-dark"
+                    type="button"
+                    onClick={() => handleAdd(p)}
+                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-crust text-white transition hover:bg-crust-dark"
                     aria-label={`Add ${p.name}`}
                   >
                     <Plus size={18} />
@@ -171,17 +176,20 @@ export default function OrderPage({ products }: { products: ProductItem[] }) {
             </div>
           ))}
         </div>
+
+        {visible.length === 0 && (
+          <p className="mt-8 text-center text-sm text-crust/60">No products in this category yet.</p>
+        )}
       </div>
 
-      {/* Cart + checkout */}
       <div className="lg:col-span-1">
-        <div className="sticky top-24 rounded-3xl border border-crust/10 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
+        <div className="sticky top-24 flex max-h-[calc(100vh-7rem)] flex-col rounded-3xl border border-crust/10 bg-white p-6 shadow-sm">
+          <div className="flex shrink-0 items-center justify-between">
             <h2 className="flex items-center gap-2 font-display text-xl font-bold text-crust-deep">
               <ShoppingBasket size={20} className="text-crust" /> Your Order
             </h2>
             <span className="rounded-full bg-warm px-3 py-1 text-sm font-bold text-crust">
-              {cart.reduce((s, i) => s + i.qty, 0)}
+              {itemCount}
             </span>
           </div>
 
@@ -191,32 +199,63 @@ export default function OrderPage({ products }: { products: ProductItem[] }) {
               Your basket is empty. Add some fresh bakes to get started.
             </div>
           ) : (
-            <div className="mt-4 space-y-3">
-              {cart.map((i) => (
-                <div key={i.product.id} className="flex items-center gap-3 rounded-xl bg-cream/60 p-2.5">
-                  <img src={i.product.image} alt={i.product.name} className="h-12 w-12 rounded-lg object-cover" />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-crust-deep">{i.product.name}</p>
-                    <p className="text-xs text-crust/60">£{i.product.price.toFixed(2)}</p>
+            <>
+              <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+                {cart.map((i) => (
+                  <div
+                    key={i.product.id}
+                    className="flex items-center gap-3 rounded-xl bg-cream/60 p-2.5"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={i.product.image}
+                      alt={i.product.name}
+                      className="h-12 w-12 rounded-lg object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-crust-deep">
+                        {i.product.name}
+                      </p>
+                      <p className="text-xs text-crust/60">£{i.product.price.toFixed(2)}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => changeQty(i.product.id, -1)}
+                        className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-white text-crust shadow-sm"
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <span className="w-5 text-center text-sm font-bold">{i.qty}</span>
+                      <button
+                        type="button"
+                        onClick={() => changeQty(i.product.id, 1)}
+                        className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-white text-crust shadow-sm"
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(i.product.id)}
+                      className="cursor-pointer text-red-500 hover:text-red-700"
+                      aria-label="Remove"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => changeQty(i.product.id, -1)} className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-crust shadow-sm"><Minus size={12} /></button>
-                    <span className="w-5 text-center text-sm font-bold">{i.qty}</span>
-                    <button onClick={() => changeQty(i.product.id, 1)} className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-crust shadow-sm"><Plus size={12} /></button>
-                  </div>
-                  <button onClick={() => removeItem(i.product.id)} className="text-red-500 hover:text-red-700" aria-label="Remove"><Trash2 size={15} /></button>
-                </div>
-              ))}
-              <div className="flex items-center justify-between border-t border-crust/10 pt-3">
+                ))}
+              </div>
+
+              <div className="mt-3 flex shrink-0 items-center justify-between border-t border-crust/10 pt-3">
                 <span className="font-medium text-crust-deep">Total</span>
                 <span className="text-xl font-bold text-crust-dark">£{total.toFixed(2)}</span>
               </div>
-            </div>
+            </>
           )}
 
-          {/* Checkout form */}
           {cart.length > 0 && (
-            <form onSubmit={handleSubmit} className="mt-5 space-y-3">
+            <form onSubmit={handleSubmit} className="mt-5 shrink-0 space-y-3">
               <input
                 required
                 value={details.customerName}
@@ -267,9 +306,13 @@ export default function OrderPage({ products }: { products: ProductItem[] }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-crust py-3 font-semibold text-white transition hover:bg-crust-dark disabled:opacity-60"
+                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-crust py-3 font-semibold text-white transition hover:bg-crust-dark disabled:opacity-60"
               >
-                {submitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                {submitting ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <CheckCircle2 size={16} />
+                )}
                 {submitting ? "Placing order…" : `Place Order · £${total.toFixed(2)}`}
               </button>
               <p className="text-center text-xs text-crust/60">

@@ -30,11 +30,11 @@ export default function ProductCard({
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           loading="lazy"
         />
-        {product.featured && (
+        {product.featured || product.isSpecial ? (
           <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-berry px-2.5 py-1 text-xs font-bold text-white shadow">
             <Star size={12} className="fill-white" /> Bestseller
           </span>
-        )}
+        ) : null}
       </div>
       <div className="flex flex-1 flex-col p-4">
         <span className="text-xs font-semibold uppercase tracking-wider text-crust">

@@ -16,6 +16,7 @@ export const openapiSpec = {
     { name: "Users" },
     { name: "Roles" },
     { name: "Permissions" },
+    { name: "Banners" },
   ],
   components: {
     schemas: {
@@ -58,6 +59,67 @@ export const openapiSpec = {
         type: "object",
         properties: { id: { type: "integer" }, key: { type: "string" }, name: { type: "string" }, status: { type: "string", enum: ["ACTIVE", "INACTIVE"] } },
       },
+      BannerCta: {
+        type: "object",
+        required: ["label", "link"],
+        properties: { label: { type: "string" }, link: { type: "string" } },
+      },
+      BannerOverlayText: {
+        type: "object",
+        required: ["heading", "subheading"],
+        properties: { heading: { type: "string" }, subheading: { type: "string" } },
+      },
+      BannerPublic: {
+        type: "object",
+        required: ["id", "title", "alt_text", "image_url", "cta", "overlay_text"],
+        properties: {
+          id: { type: "string" },
+          title: { type: "string" },
+          alt_text: { type: "string" },
+          image_url: { type: "string", format: "uri" },
+          cta: { $ref: "#/components/schemas/BannerCta" },
+          overlay_text: { $ref: "#/components/schemas/BannerOverlayText" },
+        },
+      },
+      BannerAdmin: {
+        allOf: [
+          { $ref: "#/components/schemas/BannerPublic" },
+          {
+            type: "object",
+            required: ["is_active", "sort_order", "created_at", "updated_at"],
+            properties: {
+              is_active: { type: "boolean" },
+              sort_order: { type: "integer" },
+              created_at: { type: "string", format: "date-time" },
+              updated_at: { type: "string", format: "date-time" },
+            },
+          },
+        ],
+      },
+      BannerCreateRequest: {
+        type: "object",
+        required: ["title", "alt_text", "image_url", "cta", "overlay_text"],
+        properties: {
+          title: { type: "string" },
+          alt_text: { type: "string" },
+          image_url: { type: "string", format: "uri" },
+          cta: { $ref: "#/components/schemas/BannerCta" },
+          overlay_text: { $ref: "#/components/schemas/BannerOverlayText" },
+          is_active: { type: "boolean" },
+          sort_order: { type: "integer" },
+        },
+      },
+      BannerListResponse: {
+        type: "object",
+        required: ["data", "total", "page", "pageSize", "totalPages"],
+        properties: {
+          data: { type: "array", items: { $ref: "#/components/schemas/BannerAdmin" } },
+          total: { type: "integer" },
+          page: { type: "integer" },
+          pageSize: { type: "integer" },
+          totalPages: { type: "integer" },
+        },
+      },
     },
   },
   paths: {
@@ -87,19 +149,24 @@ export const openapiSpec = {
       get: { tags: ["Users"], responses: { 200: { description: "List users" } } },
       post: {
         tags: ["Users"],
-        summary: "Create user",
+        summary: "Create user (public registration forces customer role id 2 when unauthenticated)",
         requestBody: {
           required: true,
           content: {
             "application/json": {
               schema: {
                 type: "object",
-                required: ["email", "password"],
+                required: ["email", "password", "firstName", "lastName"],
                 properties: {
                   email: { type: "string", format: "email" },
                   password: { type: "string", minLength: 8 },
-                  roleIds: { type: "array", items: { type: "integer" } },
-                  fullName: { type: "string" },
+                  firstName: { type: "string" },
+                  lastName: { type: "string" },
+                  roleIds: {
+                    type: "array",
+                    items: { type: "integer" },
+                    description: "Ignored on public register; forced to [2]. Honored when authenticated admin creates a user.",
+                  },
                 },
               },
             },
@@ -123,6 +190,66 @@ export const openapiSpec = {
     "/api/permissions/{id}": { get: { tags: ["Permissions"] }, put: { tags: ["Permissions"] }, delete: { tags: ["Permissions"] } },
     "/api/products": { get: { tags: ["Products"] } },
     "/api/testimonials": { get: { tags: ["Testimonials"] } },
+    "/api/banners": {
+      get: {
+        tags: ["Banners"],
+        summary: "List active banners for public carousel",
+        responses: {
+          200: {
+            description: "Active banners sorted by sort_order",
+            content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/BannerPublic" } } } },
+          },
+        },
+      },
+      post: {
+        tags: ["Banners"],
+        summary: "Create banner",
+        parameters: [{ name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "create.banner" } }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/BannerCreateRequest" } } },
+        },
+        responses: {
+          201: { description: "Created", content: { "application/json": { schema: { $ref: "#/components/schemas/BannerAdmin" } } } },
+          400: { description: "Bad Request" },
+          401: { description: "Unauthenticated" },
+          403: { description: "Forbidden" },
+        },
+      },
+    },
+    "/api/banners/admin": {
+      get: {
+        tags: ["Banners"],
+        summary: "Paginated admin banner list",
+        parameters: [
+          { name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "view.banner" } },
+          { name: "page", in: "query", schema: { type: "integer" } },
+          { name: "pageSize", in: "query", schema: { type: "integer" } },
+          { name: "includeInactive", in: "query", schema: { type: "boolean" } },
+        ],
+        responses: {
+          200: { description: "Paginated banners", content: { "application/json": { schema: { $ref: "#/components/schemas/BannerListResponse" } } } },
+        },
+      },
+    },
+    "/api/banners/{id}": {
+      get: {
+        tags: ["Banners"],
+        parameters: [{ name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "view.banner" } }],
+        responses: { 200: { description: "Banner", content: { "application/json": { schema: { $ref: "#/components/schemas/BannerAdmin" } } } } },
+      },
+      put: {
+        tags: ["Banners"],
+        parameters: [{ name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "update.banner" } }],
+        requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/BannerCreateRequest" } } } },
+        responses: { 200: { description: "Updated", content: { "application/json": { schema: { $ref: "#/components/schemas/BannerAdmin" } } } } },
+      },
+      delete: {
+        tags: ["Banners"],
+        parameters: [{ name: "X-Permission", in: "header", required: true, schema: { type: "string", example: "delete.banner" } }],
+        responses: { 204: { description: "Soft deleted" } },
+      },
+    },
     "/api/messages": { get: { tags: ["Messages"] }, post: { tags: ["Messages"] } },
     "/api/messages/{id}": { delete: { tags: ["Messages"] } },
     "/api/orders": { get: { tags: ["Orders"] }, post: { tags: ["Orders"] } },

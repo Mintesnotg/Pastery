@@ -1,0 +1,276 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RecordStatus {
+  ACTIVE
+  INACTIVE
+
+  @@map("record_status")
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  preparing
+  ready
+  completed
+  cancelled
+
+  @@map("order_status")
+}
+
+enum PaymentStatus {
+  pending
+  authorized
+  captured
+  failed
+  refunded
+  cancelled
+
+  @@map("payment_status")
+}
+
+model ProductCategory {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy   String?   @map("created_by") @db.Uuid
+  updatedBy   String?   @map("updated_by") @db.Uuid
+  products    Product[]
+  createdByUser User?   @relation("ProductCategoryCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User?   @relation("ProductCategoryUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@map("product_categories")
+}
+
+model Product {
+  id          Int             @id @default(autoincrement())
+  name        String
+  description String
+  price       Decimal         @db.Decimal(10, 2)
+  image       String
+  isSpecial   Boolean         @default(false) @map("is_special")
+  categoryId  Int             @map("category_id")
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy   String?         @map("created_by") @db.Uuid
+  updatedBy   String?         @map("updated_by") @db.Uuid
+  category    ProductCategory @relation(fields: [categoryId], references: [id])
+  createdByUser User?         @relation("ProductCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User?         @relation("ProductUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@index([categoryId], map: "products_category_idx")
+  @@index([active, isSpecial], map: "products_active_special_idx")
+  @@map("products")
+}
+
+model Testimonial {
+  id        Int      @id @default(autoincrement())
+  name      String
+  role      String?
+  content   String
+  rating    Int      @default(5)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("testimonials")
+}
+
+model Banner {
+  id                Int      @id @default(autoincrement())
+  title             String
+  altText           String   @map("alt_text")
+  imageUrl          String   @map("image_url")
+  ctaLabel          String   @map("cta_label")
+  ctaLink           String   @map("cta_link")
+  overlayHeading    String   @map("overlay_heading")
+  overlaySubheading String   @map("overlay_subheading")
+  active            Boolean  @default(true)
+  sortOrder         Int      @default(0) @map("sort_order")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([active, sortOrder], map: "banners_active_sort_idx")
+  @@map("banners") 
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  subject   String
+  message   String
+  status    String   @default("new")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("messages")
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String
+  passwordHash String    @map("password_hash")
+  passwordSalt String    @map("password_salt")
+  firstName    String    @default("") @map("first_name")
+  lastName     String    @default("") @map("last_name")
+  fullName     String    @map("full_name")
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  userRoles    UserRole[]
+  productsCreated         Product[]         @relation("ProductCreatedBy")
+  productsUpdated         Product[]         @relation("ProductUpdatedBy")
+  productCategoriesCreated ProductCategory[] @relation("ProductCategoryCreatedBy")
+  productCategoriesUpdated ProductCategory[] @relation("ProductCategoryUpdatedBy")
+
+  @@unique([email], map: "users_email_unique")
+  @@map("users")
+}
+
+model Role {
+  id              Int              @id @default(autoincrement())
+  key             String
+  name            String
+  description     String?
+  status          RecordStatus     @default(ACTIVE)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@unique([key], map: "roles_key_unique")
+  @@map("roles")
+}
+
+model Permission {
+  id              Int              @id @default(autoincrement())
+  key             String
+  name            String
+  description     String?
+  status          RecordStatus     @default(ACTIVE)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  rolePermissions RolePermission[]
+
+  @@unique([key], map: "permissions_key_unique")
+  @@map("permissions")
+}
+
+model UserRole {
+  userId    String   @map("user_id") @db.Uuid
+  roleId    Int      @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId], map: "user_roles_user_role_unique")
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       Int      @map("role_id")
+  permissionId Int      @map("permission_id")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  role         Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId], map: "role_permissions_role_permission_unique")
+  @@map("role_permissions")
+}
+
+model Order {
+  id             Int             @id @default(autoincrement())
+  customerName   String          @map("customer_name")
+  email          String
+  phone          String?
+  pickupDate     String          @map("pickup_date")
+  pickupTime     String          @map("pickup_time")
+  notes          String?
+  subtotal       Decimal         @db.Decimal(10, 2)
+  taxTotal       Decimal         @default(0) @map("tax_total") @db.Decimal(10, 2)
+  discountTotal  Decimal         @default(0) @map("discount_total") @db.Decimal(10, 2)
+  total          Decimal         @db.Decimal(10, 2)
+  currency       String          @default("GBP")
+  status         OrderStatus     @default(pending)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  items          OrderItem[]
+  paymentIntents PaymentIntent[]
+  payments       Payment[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id          Int      @id @default(autoincrement())
+  orderId     Int      @map("order_id")
+  productId   Int?     @map("product_id")
+  productName String   @map("product_name")
+  productSku  String?  @map("product_sku")
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(10, 2)
+  quantity    Int
+  lineTotal   Decimal  @map("line_total") @db.Decimal(10, 2)
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId], map: "order_items_order_idx")
+  @@map("order_items")
+}
+
+model PaymentIntent {
+  id               String        @id @default(uuid()) @db.Uuid
+  orderId          Int           @map("order_id")
+  provider         String
+  providerIntentId String?       @map("provider_intent_id")
+  status           PaymentStatus @default(pending)
+  amount           Decimal       @db.Decimal(10, 2)
+  currency         String        @default("GBP")
+  metadata         Json          @default("{}")
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  order            Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payments         Payment[]
+
+  @@map("payment_intents")
+}
+
+model Payment {
+  id                String         @id @default(uuid()) @db.Uuid
+  orderId           Int            @map("order_id")
+  paymentIntentId   String?        @map("payment_intent_ID") @db.Uuid
+  provider          String
+  providerPaymentId String?        @map("provider_payment_Id")
+  amount            Decimal        @db.Decimal(10, 2)
+  currency          String         @default("GBP")
+  capturedAt        DateTime?      @map("captured_at") @db.Timestamptz(6)
+  refundedAt        DateTime?      @map("refunded_at") @db.Timestamptz(6)
+  rawPayload        Json           @default("{}") @map("raw_payload")
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  order             Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentIntent     PaymentIntent? @relation(fields: [paymentIntentId], references: [id], onDelete: SetNull)
+  events            PaymentEvent[]
+
+  @@map("payments")
+}
+
+model PaymentEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  paymentId       String   @map("payment_id") @db.Uuid
+  eventType       String   @map("event_type")
+  providerEventId String?  @map("provider_event_id")
+  payload         Json     @default("{}")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("payment_events")
+}

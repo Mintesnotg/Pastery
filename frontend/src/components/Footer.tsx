@@ -99,8 +99,8 @@ export default function Footer() {
             day.
           </div>
           <div>
-            <Link href="/admin" className="font-semibold text-cream/60 transition hover:text-honey">
-              Staff Portal (Admin)
+            <Link href="/dashboard" className="font-semibold text-cream/60 transition hover:text-honey">
+              Dashboard
             </Link>
           </div>
         </div>

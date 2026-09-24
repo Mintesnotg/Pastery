@@ -15,14 +15,12 @@ type RoleSelectorProps = {
 };
 
 export function RoleSelector({ roles = [], selectedIds, onChange }: RoleSelectorProps) {
-  debugger;
   const [search, setSearch] = useState("");
   const roleList = Array.isArray(roles) ? roles : Array.isArray(roles.data) ? roles.data : [];
 
   const filtered = search.trim()
     ? roleList.filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()))
     : roleList;
-  debugger;
   const toggle = (id: number, checked: boolean) => {
     onChange(checked ? [...selectedIds, id] : selectedIds.filter((x) => x !== id));
   };
