@@ -80,7 +80,7 @@ export default function MyOrdersPage() {
           <Package className="mx-auto h-10 w-10 text-gray-300" />
           <p className="mt-4 text-sm text-gray-500">You have not placed any orders yet.</p>
           <a
-            href="/order"
+            href="/dashboard/place-order"
             className="mt-4 inline-flex rounded-full bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-gray-800"
           >
             Place an order

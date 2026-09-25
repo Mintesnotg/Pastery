@@ -1,19 +1,28 @@
-"use client";
+import OrderCheckout from "@/components/order/OrderCheckout";
+import { CartProvider } from "@/context/CartContext";
+import { getProductCategories, getProducts } from "@/lib/products";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+export const dynamic = "force-dynamic";
 
-export default function PlaceOrderRedirectPage() {
-  const router = useRouter();
+export const metadata = {
+  title: "Place Order",
+};
 
-  useEffect(() => {
-    router.replace("/order");
-  }, [router]);
+export default async function PlaceOrderPage() {
+  const [products, categories] = await Promise.all([
+    getProducts(),
+    getProductCategories(),
+  ]);
 
   return (
-    <div className="flex min-h-[40vh] items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-gray-500" aria-label="Redirecting to order page" />
-    </div>
+    <CartProvider>
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-gray-900">Place Order</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Build your basket and schedule a pickup. After checkout you&apos;ll see your orders.
+        </p>
+      </div>
+      <OrderCheckout products={products} categories={categories} variant="dashboard" />
+    </CartProvider>
   );
 }

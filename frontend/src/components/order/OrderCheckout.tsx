@@ -18,19 +18,23 @@ import type { StoreProduct } from "@/lib/products";
 
 type Category = { id: number; name: string; description: string | null };
 
-type Props = {
+export type OrderCheckoutProps = {
   products: StoreProduct[];
   categories: Category[];
+  variant?: "public" | "dashboard";
 };
 
-export default function OrderPage({ products, categories }: Props) {
+export default function OrderCheckout({
+  products,
+  categories,
+  variant = "public",
+}: OrderCheckoutProps) {
   const router = useRouter();
   const { cart, addToCart, changeQty, removeItem, clearCart, total, itemCount } = useCart();
   const { toast, showToast, dismiss } = useToast();
   const [activeCategoryId, setActiveCategoryId] = useState<number | "all">("all");
-  const [placed, setPlaced] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [authChecking, setAuthChecking] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState("");
   const [details, setDetails] = useState({
     customerName: "",
@@ -43,33 +47,62 @@ export default function OrderPage({ products, categories }: Props) {
 
   useEffect(() => {
     let cancelled = false;
+    const DRAFT_KEY = "hob.checkout.draft.v1";
+
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw) as {
+          customerName?: string;
+          email?: string;
+          phone?: string;
+          pickupDate?: string;
+          pickupTime?: string;
+          notes?: string;
+        };
+        setDetails((prev) => ({
+          ...prev,
+          customerName: draft.customerName ?? prev.customerName,
+          email: draft.email ?? prev.email,
+          phone: draft.phone ?? prev.phone,
+          pickupDate: draft.pickupDate ?? prev.pickupDate,
+          pickupTime: draft.pickupTime ?? prev.pickupTime,
+          notes: draft.notes ?? prev.notes,
+        }));
+      }
+    } catch {
+      /* ignore */
+    }
 
     (async () => {
       try {
         const res = await fetch(apiUrl("/api/auth/me"), { credentials: "include" });
         if (!res.ok) {
-          if (!cancelled) router.replace("/account?next=/order");
+          if (!cancelled) setIsAuthenticated(false);
           return;
         }
         const data = await res.json();
         if (cancelled) return;
-        const email = (data.user?.email as string | undefined) ?? "";
+        setIsAuthenticated(true);
+        const email =
+          (data.email as string | undefined) ??
+          (data.user?.email as string | undefined) ??
+          "";
         const name = (data.fullName as string | null | undefined) ?? "";
         setDetails((prev) => ({
           ...prev,
           customerName: prev.customerName || name || "",
           email: prev.email || email,
         }));
-        setAuthChecking(false);
       } catch {
-        if (!cancelled) router.replace("/account?next=/order");
+        if (!cancelled) setIsAuthenticated(false);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, []);
 
   const visible = useMemo(
     () =>
@@ -84,9 +117,34 @@ export default function OrderPage({ products, categories }: Props) {
     showToast(`${product.name} added to your basket.`, "success");
   };
 
+  const stashCheckoutDraft = () => {
+    try {
+      sessionStorage.setItem(
+        "hob.checkout.draft.v1",
+        JSON.stringify({
+          customerName: details.customerName,
+          email: details.email,
+          phone: details.phone,
+          pickupDate: details.pickupDate,
+          pickupTime: details.pickupTime,
+          notes: details.notes,
+        }),
+      );
+    } catch {
+      /* ignore */
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0) return;
+
+    if (!isAuthenticated) {
+      stashCheckoutDraft();
+      router.push("/account?next=/dashboard/place-order");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
     try {
@@ -109,7 +167,9 @@ export default function OrderPage({ products, categories }: Props) {
         }),
       );
       if (res.status === 401) {
-        router.replace("/account?next=/order");
+        stashCheckoutDraft();
+        setIsAuthenticated(false);
+        router.push("/account?next=/dashboard/place-order");
         return;
       }
       if (res.status === 403) {
@@ -117,8 +177,13 @@ export default function OrderPage({ products, categories }: Props) {
       }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong.");
-      setPlaced(true);
+      try {
+        sessionStorage.removeItem("hob.checkout.draft.v1");
+      } catch {
+        /* ignore */
+      }
       clearCart();
+      router.push("/dashboard/my-orders");
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -126,46 +191,12 @@ export default function OrderPage({ products, categories }: Props) {
     }
   };
 
-  if (authChecking) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center px-4 py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-crust" aria-label="Checking login" />
-      </div>
-    );
-  }
-
-  if (placed) {
-    return (
-      <div className="mx-auto max-w-xl px-4 py-24 text-center">
-        <div className="rounded-3xl border border-crust/10 bg-white p-10 shadow-sm">
-          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">
-            <CheckCircle2 size={34} />
-          </span>
-          <h1 className="mt-5 font-display text-3xl font-bold text-crust-deep">
-            Order Confirmed!
-          </h1>
-          <p className="mt-3 text-crust-deep/70">
-            Thank you for ordering with House of Bread London. We&apos;ll have everything baked
-            fresh and ready for your pick-up at{" "}
-            <span className="font-semibold">
-              {details.pickupDate} at {details.pickupTime}
-            </span>{" "}
-            — pay at the counter. See you soon!
-          </p>
-          <button
-            type="button"
-            onClick={() => setPlaced(false)}
-            className="mt-7 cursor-pointer rounded-full bg-crust px-7 py-3 font-semibold text-white transition hover:bg-crust-dark"
-          >
-            Make Another Order
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-3 lg:px-8">
+    <div
+      className={`mx-auto grid max-w-7xl gap-10 lg:grid-cols-3 ${
+        variant === "dashboard" ? "px-0 py-2" : "px-4 py-12 sm:px-6 lg:px-8"
+      }`}
+    >
       <Toast toast={toast} onDismiss={dismiss} />
 
       <div className="lg:col-span-2">
