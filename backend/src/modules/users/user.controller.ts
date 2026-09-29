@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { sendError } from "../../shared/utils/response.js";
 import { readStringId } from "../../shared/utils/requestParams.js";
+import { prisma } from "../../db/index.js";
 import {
   createNewUser,
   deleteUser,
@@ -21,13 +22,19 @@ export async function createUserController(req: Request, res: Response) {
   const parsed = userSchema.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, "Invalid user payload");
 
-  // Public registration always gets customer role (id 2); ignore client roleIds.
-  const CUSTOMER_ROLE_ID = 2;
-  const payload = req.auth
-    ? parsed.data
-    : { ...parsed.data, roleIds: [CUSTOMER_ROLE_ID] };
+  const isPublicRegistration = !req.auth;
+  let roleIds = parsed.data.roleIds;
 
-  const created = await createNewUser(payload);
+  if (isPublicRegistration) {
+    const customer = await prisma.role.findUnique({ where: { key: "customer" } });
+    if (!customer) return sendError(res, 500, "Customer role is not configured");
+    roleIds = [customer.id];
+  }
+
+  const payload = { ...parsed.data, roleIds };
+  const created = await createNewUser(payload, {
+    requireEmailVerification: isPublicRegistration,
+  });
   if (!created) return sendError(res, 400, "Invalid user payload");
   if ("weakPassword" in created)
     return sendError(
@@ -37,6 +44,17 @@ export async function createUserController(req: Request, res: Response) {
     );
   if ("conflict" in created) return sendError(res, 409, "User already exists");
   if ("invalidRoleIds" in created) return sendError(res, 400, "Invalid role IDs");
+
+  if (isPublicRegistration) {
+    return res.status(201).json({
+      success: true,
+      requiresVerification: true,
+      verificationSent: created.verificationSent ?? false,
+      message: "Account created. Please check your email to verify before signing in.",
+      email: created.user.email,
+    });
+  }
+
   res.status(201).json(created.user);
 }
 

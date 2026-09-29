@@ -85,7 +85,7 @@ export default function Header() {
                     </span>
                   )}
                 </span>
-                {link.cta && <ShoppingBasket size={18} className="text-crust" />}
+                {link.cta && <ShoppingBasket size={20} className="text-crust" />}
               </Link>
             ))}
           </div>

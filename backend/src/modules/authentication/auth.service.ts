@@ -7,10 +7,17 @@ import {
 import { findActiveUserByEmail, updateUserLastLogin } from "../users/user.repository.js";
 
 export async function login(email: string, password: string) {
-  const user = await findActiveUserByEmail(email);
-  if (!user || !verifyPassword(password, user.passwordSalt, user.passwordHash)) {
+  const user = await findActiveUserByEmail(email.trim().toLowerCase());
+  if (!user || !user.passwordHash || !user.passwordSalt) {
     return null;
   }
+  if (!verifyPassword(password, user.passwordSalt, user.passwordHash)) {
+    return null;
+  }
+  if (!user.emailVerifiedAt) {
+    return { emailNotVerified: true as const, email: user.email };
+  }
+
   const roleIds = await getUserRoleIds(user.id);
   const roles = await getUserRoleKeys(user.id);
   const permissions = await getUserPermissions(user.id);

@@ -217,10 +217,13 @@ async function main() {
   const adminUser = await prisma.user.create({
     data: {
       email: "admin@houseofbread.local",
+      firstName: "Bootstrap",
+      lastName: "Admin",
       fullName: "Bootstrap Admin",
       passwordHash: adminPassword.hash,
       passwordSalt: adminPassword.salt,
       active: true,
+      emailVerifiedAt: new Date(),
     },
   });
 

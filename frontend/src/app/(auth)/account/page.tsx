@@ -17,6 +17,7 @@ import {
   Mail,
 } from "lucide-react";
 import { apiUrl } from "@/lib/api";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 const BROWN = "#734F32";
 const PEACH = "#FDEBDD";
@@ -197,6 +198,7 @@ function AccountPageInner() {
   const [apiError, setApiError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pendingVerifyEmail, setPendingVerifyEmail] = useState("");
 
   useEffect(() => {
     try {
@@ -263,6 +265,11 @@ function AccountPageInner() {
       body: JSON.stringify({ email: normalizedEmail, password }),
     });
     const data = await res.json().catch(() => ({}));
+    if (res.status === 403 && (data as { code?: string }).code === "EMAIL_NOT_VERIFIED") {
+      const err = new Error("EMAIL_NOT_VERIFIED") as Error & { email?: string };
+      err.email = (data as { email?: string }).email ?? normalizedEmail;
+      throw err;
+    }
     if (!res.ok) {
       throw new Error(
         (data as { error?: string; message?: string }).error ||
@@ -271,6 +278,55 @@ function AccountPageInner() {
       );
     }
     router.replace(redirectAfterAuth(searchParams.get("next")));
+  };
+
+  const handleGoogleCredential = async (idToken: string) => {
+    setApiError("");
+    setSuccessMessage("");
+    setLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/auth/google"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ idToken }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((data as { error?: string }).error || "Google sign-in failed");
+      }
+      router.replace(redirectAfterAuth(searchParams.get("next")));
+    } catch (err) {
+      setApiError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    const email = pendingVerifyEmail || loginForm.email.trim().toLowerCase();
+    if (!email) {
+      setApiError("Enter your email to resend verification.");
+      return;
+    }
+    setLoading(true);
+    setApiError("");
+    try {
+      const res = await fetch(apiUrl("/api/auth/resend-verification"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((data as { error?: string }).error || "Could not resend email");
+      }
+      setSuccessMessage((data as { message?: string }).message || "Verification email sent.");
+    } catch (err) {
+      setApiError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -288,8 +344,8 @@ function AccountPageInner() {
       return;
     }
     setLoading(true);
+    const email = parsed.data.email.trim().toLowerCase();
     try {
-      const email = parsed.data.email.trim().toLowerCase();
       try {
         if (rememberMe) localStorage.setItem(REMEMBER_KEY, email);
         else localStorage.removeItem(REMEMBER_KEY);
@@ -297,9 +353,17 @@ function AccountPageInner() {
         /* ignore */
       }
       await performLogin(email, parsed.data.password);
+      setPendingVerifyEmail("");
     } catch (err) {
-      setApiError((err as Error).message);
-      setLoginErrors((prev) => ({ ...prev, password: (err as Error).message }));
+      const e = err as Error & { email?: string };
+      if (e.message === "EMAIL_NOT_VERIFIED") {
+        setPendingVerifyEmail(e.email ?? email);
+        setApiError("Please verify your email before signing in. Check your inbox or resend below.");
+        setSuccessMessage("");
+      } else {
+        setApiError(e.message);
+        setLoginErrors((prev) => ({ ...prev, password: e.message }));
+      }
     } finally {
       setLoading(false);
     }
@@ -336,7 +400,18 @@ function AccountPageInner() {
       if (!res.ok) {
         throw new Error((data as { error?: string }).error || "Registration failed");
       }
-      await performLogin(parsed.data.email, parsed.data.password);
+      setPendingVerifyEmail(parsed.data.email.trim().toLowerCase());
+      setLoginForm((prev) => ({
+        ...prev,
+        email: parsed.data.email.trim().toLowerCase(),
+        password: "",
+      }));
+      setTab("login");
+      setApiError("");
+      setSuccessMessage(
+        (data as { message?: string }).message ||
+          "Account created. Check your email for a verification link before signing in.",
+      );
     } catch (err) {
       setApiError((err as Error).message);
     } finally {
@@ -497,6 +572,20 @@ function AccountPageInner() {
                 {successMessage && tab === "login" && (
                   <p className="text-sm text-green-700">{successMessage}</p>
                 )}
+                {apiError && tab === "login" && !loginErrors.password && (
+                  <p className="text-sm text-red-600">{apiError}</p>
+                )}
+                {pendingVerifyEmail && tab === "login" && (
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => void handleResendVerification()}
+                    className="w-full text-sm font-semibold underline"
+                    style={{ color: BROWN }}
+                  >
+                    Resend verification email to {pendingVerifyEmail}
+                  </button>
+                )}
 
                 <button
                   type="submit"
@@ -508,6 +597,12 @@ function AccountPageInner() {
                   {loading && tab === "login" ? "Signing in…" : "Sign In"}
                   {!(loading && tab === "login") && <ArrowRight size={16} />}
                 </button>
+
+                <div className="relative py-2 text-center text-xs font-medium uppercase tracking-wide text-[#9A8573]">
+                  <span className="relative z-10 bg-white px-3">or</span>
+                  <span className="absolute inset-x-0 top-1/2 h-px bg-[#EFE4D8]" />
+                </div>
+                <GoogleSignInButton onCredential={handleGoogleCredential} disabled={loading} />
               </form>
 
               <form
@@ -643,6 +738,12 @@ function AccountPageInner() {
                   {loading && tab === "register" ? "Creating account…" : "Create account"}
                   {!(loading && tab === "register") && <ArrowRight size={16} />}
                 </button>
+
+                <div className="relative py-2 text-center text-xs font-medium uppercase tracking-wide text-[#9A8573]">
+                  <span className="relative z-10 bg-white px-3">or</span>
+                  <span className="absolute inset-x-0 top-1/2 h-px bg-[#EFE4D8]" />
+                </div>
+                <GoogleSignInButton onCredential={handleGoogleCredential} disabled={loading} />
               </form>
             </div>
           </div>
