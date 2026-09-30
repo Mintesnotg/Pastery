@@ -135,7 +135,7 @@ export function FeaturedBakesCarousel({ products }: Props) {
                     type="button"
                     onClick={() => {
                       addToCart(p);
-                      showToast(`${p.name} added to your basket.`, "success");
+                      showToast("Item added to your cart", "success");
                     }}
                     className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#FDEBDD] py-3 text-sm font-semibold text-[#734F32] transition hover:brightness-95"
                   >

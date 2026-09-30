@@ -2,7 +2,11 @@ import {
   createOrder,
   createOrderItems,
   deleteOrderById,
+  findLatestPaymentIntentByOrderId,
+  findOrderById,
+  findProductImagesByIds,
   listOrderItemsByOrderId,
+  listOrderItemsByOrderIds,
   listOrders,
   updateOrderStatusById,
 } from "./order.repository.js";
@@ -25,14 +29,65 @@ export type OrderInput = {
   total: number;
 };
 
+type OrderItemRow = {
+  id: number;
+  orderId: number;
+  productId: number | null;
+  productName: string;
+  unitPrice: unknown;
+  quantity: number;
+  lineTotal: unknown;
+  createdAt: Date;
+};
+
+async function enrichItemsWithProductImages(items: OrderItemRow[]) {
+  const productIds = [
+    ...new Set(items.map((item) => item.productId).filter((id): id is number => id != null)),
+  ];
+  const imageMap = await findProductImagesByIds(productIds);
+  return items.map((item) => ({
+    ...item,
+    productImage: item.productId != null ? (imageMap.get(item.productId) ?? null) : null,
+  }));
+}
+
 export async function getOrdersWithItems(userId?: string) {
   const rows = await listOrders(userId);
-  return Promise.all(
-    rows.map(async (order: { id: number }) => ({
-      ...order,
-      items: await listOrderItemsByOrderId(order.id),
-    })),
-  );
+  const orderIds = rows.map((order) => order.id);
+  const allItems = await listOrderItemsByOrderIds(orderIds);
+  const enrichedItems = await enrichItemsWithProductImages(allItems);
+  const itemsByOrderId = new Map<number, typeof enrichedItems>();
+  for (const item of enrichedItems) {
+    const list = itemsByOrderId.get(item.orderId) ?? [];
+    list.push(item);
+    itemsByOrderId.set(item.orderId, list);
+  }
+  return rows.map((order) => ({
+    ...order,
+    items: itemsByOrderId.get(order.id) ?? [],
+  }));
+}
+
+export async function getOrderById(id: number) {
+  const order = await findOrderById(id);
+  if (!order) return null;
+
+  const items = await listOrderItemsByOrderId(order.id);
+  const enrichedItems = await enrichItemsWithProductImages(items);
+  const paymentIntent = await findLatestPaymentIntentByOrderId(order.id);
+
+  return {
+    ...order,
+    items: enrichedItems,
+    payment: paymentIntent
+      ? {
+          status: paymentIntent.status,
+          provider: paymentIntent.provider,
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency,
+        }
+      : null,
+  };
 }
 
 export async function placeOrder(input: OrderInput, userId: string) {

@@ -114,7 +114,7 @@ export default function OrderCheckout({
 
   const handleAdd = (product: StoreProduct) => {
     addToCart(product);
-    showToast(`${product.name} added to your basket.`, "success");
+    showToast("Item added to your cart", "success");
   };
 
   const stashCheckoutDraft = () => {

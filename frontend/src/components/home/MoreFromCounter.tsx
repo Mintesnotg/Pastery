@@ -60,9 +60,10 @@ export function MoreFromCounter({ initialProducts, categories }: Props) {
   const fetchProducts = useCallback(async (categoryId: number | "all") => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ isSpecial: "false" });
+      const params = new URLSearchParams();
       if (categoryId !== "all") params.set("categoryId", String(categoryId));
-      const res = await fetch(apiUrl(`/api/products?${params}`), { cache: "no-store" });
+      const qs = params.toString();
+      const res = await fetch(apiUrl(`/api/products${qs ? `?${qs}` : ""}`), { cache: "no-store" });
       if (res.ok) {
         const rows = await res.json();
         setProducts(
@@ -246,7 +247,7 @@ export function MoreFromCounter({ initialProducts, categories }: Props) {
                             type="button"
                             onClick={() => {
                               addToCart(p);
-                              showToast(`${p.name} added to your basket.`, "success");
+                              showToast("Item added to your cart", "success");
                             }}
                             className="cursor-pointer rounded-full bg-[#3C2A21] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#2A1D16]"
                           >

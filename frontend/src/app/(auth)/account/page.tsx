@@ -580,10 +580,9 @@ function AccountPageInner() {
                     type="button"
                     disabled={loading}
                     onClick={() => void handleResendVerification()}
-                    className="w-full text-sm font-semibold underline"
-                    style={{ color: BROWN }}
+                    className="w-full cursor-pointer rounded-full border border-[#E6D9CB] bg-[#FFF8F3] px-4 py-2.5 text-sm font-medium text-[#734F32] transition hover:bg-[#FDEBDD] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Resend verification email to {pendingVerifyEmail}
+                    Resend verification email 
                   </button>
                 )}
 
