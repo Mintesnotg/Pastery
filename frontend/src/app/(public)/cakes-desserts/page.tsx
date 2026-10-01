@@ -2,13 +2,13 @@ import Link from "next/link";
 import { ChevronRight, Cake, Gift, Phone } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import ProductCard from "@/components/ProductCard";
-import { getProducts } from "@/lib/products";
+import { getProducts, toProductItem } from "@/lib/products";
 
 export const dynamic = "force-dynamic";
 
 export default async function CakesDessertsPage() {
   const products = await getProducts();
-  const cakes = products.filter((p) => p.category === "Cakes");
+  const cakes = products.filter((p) => /cake|dessert/i.test(p.category.name)).map(toProductItem);
 
   return (
     <>
