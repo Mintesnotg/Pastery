@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Camera, Globe, AtSign, MapPin, Phone, Mail, Clock, Wheat } from "lucide-react";
+import { Camera, Globe, AtSign, MapPin, Phone, Mail, Clock } from "lucide-react";
+import Logo from "./Logo";
 import { siteConfig, navLinks } from "@/config/site";
 import { CONTACT_INFO } from "@/data/products";
 
@@ -10,12 +11,7 @@ export default function Footer() {
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-honey to-crust text-white">
-                <Wheat size={20} />
-              </span>
-              <span className="font-display text-xl font-bold">House of Bread</span>
-            </div>
+            <Logo dark />
             <p className="mt-4 text-sm leading-relaxed text-cream/70">
               Freshly baked every day in the heart of London. Slow-fermented sourdough, flaky
               pastries and celebration cakes crafted with love since 2010.

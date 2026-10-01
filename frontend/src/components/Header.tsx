@@ -14,7 +14,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-crust/10 bg-cream/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <Logo />
+        <Logo priority />
 
         <nav className="hidden items-center gap-1 lg:flex">
           {navLinks.map((link) =>

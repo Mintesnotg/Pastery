@@ -1,20 +1,28 @@
 import Link from "next/link";
-import { Wheat } from "lucide-react";
+import Image from "next/image";
 
-export default function Logo({ dark = false }: { dark?: boolean }) {
+// Intrinsic size of public/logo.svg and public/logo-dark.svg (kept for aspect ratio; CSS sets the rendered height).
+const LOCKUP_WIDTH = 310;
+const LOCKUP_HEIGHT = 64;
+
+type LogoProps = {
+  dark?: boolean;
+  /** Set for above-the-fold placements (site header) so the lockup isn't lazy-loaded. */
+  priority?: boolean;
+};
+
+export default function Logo({ dark = false, priority = false }: LogoProps) {
   return (
-    <Link href="/" className="group flex items-center gap-2.5">
-      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-honey to-crust text-white shadow-md transition-transform group-hover:rotate-12">
-        <Wheat size={20} strokeWidth={2.2} />
-      </span>
-      <span className="leading-tight">
-        <span className={`block font-display text-lg font-bold ${dark ? "text-white" : "text-crust-deep"}`}>
-          House of Bread
-        </span>
-        <span className={`block text-[11px] font-medium tracking-[0.25em] uppercase ${dark ? "text-cream/70" : "text-crust"}`}>
-          London · Est. 2010
-        </span>
-      </span>
+    <Link href="/" className="group inline-flex items-center" aria-label="House of Bread London – home">
+      <Image
+        src={dark ? "/logo-dark.svg" : "/logo.svg"}
+        alt="House of Bread London"
+        width={LOCKUP_WIDTH}
+        height={LOCKUP_HEIGHT}
+        priority={priority}
+        unoptimized
+        className="h-11 w-auto transition-transform duration-300 group-hover:scale-[1.03]"
+      />
     </Link>
   );
 }

@@ -1,7 +1,17 @@
 @import "tailwindcss";
 
+/*
+ * Brand type (docs/brand/README.md §3). The font variables are set on <html>
+ * by next/font in layout.tsx; `inline` makes the utilities read them from the
+ * element they are applied to rather than from :root.
+ */
+@theme inline {
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
 @theme {
-  --font-display: "Georgia", "Times New Roman", serif;
   --color-cream: #faf6ef;
   --color-warm: #f4ead8;
   --color-dough: #e8d5b7;
@@ -19,8 +29,7 @@ html {
 body {
   background-color: #faf6ef;
   color: #3f2a18;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
 }
 
 .font-display {
