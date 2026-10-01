@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = "postgresql://postgres:postgres@127.0.0.1:5432/house_of_bread_prod"
 }
 
 enum RecordStatus {
