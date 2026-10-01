@@ -1,5 +1,5 @@
 import PageHeader from "@/components/PageHeader";
-import OrderPage from "./OrderPage";
+import OrderCheckout from "@/components/order/OrderCheckout";
 import { getProductCategories, getProducts } from "@/lib/products";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ export default async function OrderPageRoute() {
         title="Order Fresh Bakes for Pickup"
         subtitle="Choose from today's menu, pick a pickup time, and we'll bake it fresh. Pay when you collect."
       />
-      <OrderPage products={products} categories={categories} />
+      <OrderCheckout products={products} categories={categories} variant="public" />
     </>
   );
 }
