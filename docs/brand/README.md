@@ -72,6 +72,8 @@ No cool greys, blues or black. "Dark" is always Deep Crust.
 
 Headlines are **sentence case**; the only capitals are tracked eyebrow labels and the "LONDON" line. A headline may carry one italic phrase ("Freshly baked *every day.*"). Never use script, comic or condensed display faces. Both families are open-source (SIL OFL) on Google Fonts; fallbacks are Georgia and the system sans stack.
 
+**In the web app** both faces are self-hosted through `next/font` in `frontend/src/app/layout.tsx` and exposed as the Tailwind tokens `--font-display` (Fraunces) and `--font-sans` (Plus Jakarta Sans) in `globals.css`. Use the `font-display` utility for headings; body text inherits Plus Jakarta Sans.
+
 ---
 
 ## 4. Graphic devices

@@ -1,7 +1,28 @@
 import type { Metadata, Viewport } from "next";
+import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { siteConfig } from "@/config/site";
+
+// Brand typography (docs/brand/README.md §3): Fraunces for display, Plus Jakarta Sans for text and UI.
+// Both are loaded as variable fonts; Fraunces keeps its optical-size axis so large headings
+// get the display cut automatically.
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: "variable",
+  style: ["normal", "italic"],
+  axes: ["opsz"],
+  variable: "--font-fraunces",
+  display: "swap",
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: "variable",
+  style: ["normal", "italic"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
 
 const shareImage = {
   url: "/og-image.jpg",
@@ -48,7 +69,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${fraunces.variable} ${jakarta.variable}`}>
       <body className="flex min-h-screen flex-col bg-cream text-crust-deep antialiased">
         {children}
       </body>
