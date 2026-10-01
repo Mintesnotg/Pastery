@@ -14,7 +14,16 @@ export type AuthedRequest = Request & {
   permissions?: string[];
 };
 
-const publicPrefixes = ["/", "/health", "/docs", "/openapi.json", "/api/auth/login"];
+const publicPrefixes = [
+  "/",
+  "/health",
+  "/docs",
+  "/openapi.json",
+  "/api/auth/login",
+  "/api/auth/google",
+  "/api/auth/verify-email",
+  "/api/auth/resend-verification",
+];
 
 function getSessionToken(req: Request) {
   const cookieToken = req.cookies?.session || req.header("authorization")?.replace(/^Bearer\s+/i, "");

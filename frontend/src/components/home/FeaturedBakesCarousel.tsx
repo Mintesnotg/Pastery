@@ -119,7 +119,6 @@ export function FeaturedBakesCarousel({ products }: Props) {
               className="flex w-[78%] shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-white shadow-lg sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)]"
             >
               <div className="relative aspect-[4/3] overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
                 <span className="absolute top-3 left-3 rounded-full bg-[#FDEBDD] px-3 py-1 text-xs font-semibold text-[#734F32]">
                   {p.category.name}
@@ -136,7 +135,7 @@ export function FeaturedBakesCarousel({ products }: Props) {
                     type="button"
                     onClick={() => {
                       addToCart(p);
-                      showToast(`${p.name} added to your basket.`, "success");
+                      showToast("Item added to your cart", "success");
                     }}
                     className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#FDEBDD] py-3 text-sm font-semibold text-[#734F32] transition hover:brightness-95"
                   >

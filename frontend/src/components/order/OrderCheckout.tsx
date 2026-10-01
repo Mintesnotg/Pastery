@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Minus,
@@ -12,22 +13,28 @@ import {
 } from "lucide-react";
 import { Toast, useToast } from "@/components/ui/Toast";
 import { useCart } from "@/context/CartContext";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, withPermission } from "@/lib/api";
 import type { StoreProduct } from "@/lib/products";
 
 type Category = { id: number; name: string; description: string | null };
 
-type Props = {
+export type OrderCheckoutProps = {
   products: StoreProduct[];
   categories: Category[];
+  variant?: "public" | "dashboard";
 };
 
-export default function OrderPage({ products, categories }: Props) {
+export default function OrderCheckout({
+  products,
+  categories,
+  variant = "public",
+}: OrderCheckoutProps) {
+  const router = useRouter();
   const { cart, addToCart, changeQty, removeItem, clearCart, total, itemCount } = useCart();
   const { toast, showToast, dismiss } = useToast();
   const [activeCategoryId, setActiveCategoryId] = useState<number | "all">("all");
-  const [placed, setPlaced] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState("");
   const [details, setDetails] = useState({
     customerName: "",
@@ -37,6 +44,65 @@ export default function OrderPage({ products, categories }: Props) {
     pickupTime: "",
     notes: "",
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    const DRAFT_KEY = "hob.checkout.draft.v1";
+
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw) as {
+          customerName?: string;
+          email?: string;
+          phone?: string;
+          pickupDate?: string;
+          pickupTime?: string;
+          notes?: string;
+        };
+        setDetails((prev) => ({
+          ...prev,
+          customerName: draft.customerName ?? prev.customerName,
+          email: draft.email ?? prev.email,
+          phone: draft.phone ?? prev.phone,
+          pickupDate: draft.pickupDate ?? prev.pickupDate,
+          pickupTime: draft.pickupTime ?? prev.pickupTime,
+          notes: draft.notes ?? prev.notes,
+        }));
+      }
+    } catch {
+      /* ignore */
+    }
+
+    (async () => {
+      try {
+        const res = await fetch(apiUrl("/api/auth/me"), { credentials: "include" });
+        if (!res.ok) {
+          if (!cancelled) setIsAuthenticated(false);
+          return;
+        }
+        const data = await res.json();
+        if (cancelled) return;
+        setIsAuthenticated(true);
+        const email =
+          (data.email as string | undefined) ??
+          (data.user?.email as string | undefined) ??
+          "";
+        const name = (data.fullName as string | null | undefined) ?? "";
+        setDetails((prev) => ({
+          ...prev,
+          customerName: prev.customerName || name || "",
+          email: prev.email || email,
+        }));
+      } catch {
+        if (!cancelled) setIsAuthenticated(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const visible = useMemo(
     () =>
@@ -48,33 +114,76 @@ export default function OrderPage({ products, categories }: Props) {
 
   const handleAdd = (product: StoreProduct) => {
     addToCart(product);
-    showToast(`${product.name} added to your basket.`, "success");
+    showToast("Item added to your cart", "success");
+  };
+
+  const stashCheckoutDraft = () => {
+    try {
+      sessionStorage.setItem(
+        "hob.checkout.draft.v1",
+        JSON.stringify({
+          customerName: details.customerName,
+          email: details.email,
+          phone: details.phone,
+          pickupDate: details.pickupDate,
+          pickupTime: details.pickupTime,
+          notes: details.notes,
+        }),
+      );
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0) return;
+
+    if (!isAuthenticated) {
+      stashCheckoutDraft();
+      router.push("/account?next=/dashboard/place-order");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
     try {
-      const res = await fetch(apiUrl("/api/orders"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...details,
-          items: cart.map((i) => ({
-            id: i.product.id,
-            name: i.product.name,
-            price: i.product.price,
-            qty: i.qty,
-          })),
-          total: Number(total.toFixed(2)),
+      const res = await fetch(
+        apiUrl("/api/orders"),
+        withPermission("create.order", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...details,
+            items: cart.map((i) => ({
+              id: i.product.id,
+              name: i.product.name,
+              price: i.product.price,
+              qty: i.qty,
+            })),
+            total: Number(total.toFixed(2)),
+          }),
         }),
-      });
+      );
+      if (res.status === 401) {
+        stashCheckoutDraft();
+        setIsAuthenticated(false);
+        router.push("/account?next=/dashboard/place-order");
+        return;
+      }
+      if (res.status === 403) {
+        throw new Error("You do not have permission to place orders.");
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong.");
-      setPlaced(true);
+      try {
+        sessionStorage.removeItem("hob.checkout.draft.v1");
+      } catch {
+        /* ignore */
+      }
       clearCart();
+      router.push("/dashboard/my-orders");
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -82,38 +191,12 @@ export default function OrderPage({ products, categories }: Props) {
     }
   };
 
-  if (placed) {
-    return (
-      <div className="mx-auto max-w-xl px-4 py-24 text-center">
-        <div className="rounded-3xl border border-crust/10 bg-white p-10 shadow-sm">
-          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">
-            <CheckCircle2 size={34} />
-          </span>
-          <h1 className="mt-5 font-display text-3xl font-bold text-crust-deep">
-            Order Confirmed!
-          </h1>
-          <p className="mt-3 text-crust-deep/70">
-            Thank you for ordering with House of Bread London. We&apos;ll have everything baked
-            fresh and ready for your pick-up at{" "}
-            <span className="font-semibold">
-              {details.pickupDate} at {details.pickupTime}
-            </span>{" "}
-            — pay at the counter. See you soon!
-          </p>
-          <button
-            type="button"
-            onClick={() => setPlaced(false)}
-            className="mt-7 cursor-pointer rounded-full bg-crust px-7 py-3 font-semibold text-white transition hover:bg-crust-dark"
-          >
-            Make Another Order
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-3 lg:px-8">
+    <div
+      className={`mx-auto grid max-w-7xl gap-10 lg:grid-cols-3 ${
+        variant === "dashboard" ? "px-0 py-2" : "px-4 py-12 sm:px-6 lg:px-8"
+      }`}
+    >
       <Toast toast={toast} onDismiss={dismiss} />
 
       <div className="lg:col-span-2">

@@ -16,12 +16,40 @@ export async function createOrderItems(items: OrderItemInsertInput[]) {
   });
 }
 
-export async function listOrders() {
-  return prisma.order.findMany({ orderBy: { createdAt: "desc" } });
+export async function listOrders(userId?: string) {
+  return prisma.order.findMany({
+    where: userId ? { userId } : undefined,
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 export async function listOrderItemsByOrderId(orderId: number) {
   return prisma.orderItem.findMany({ where: { orderId } });
+}
+
+export async function listOrderItemsByOrderIds(orderIds: number[]) {
+  if (orderIds.length === 0) return [];
+  return prisma.orderItem.findMany({
+    where: { orderId: { in: orderIds } },
+    orderBy: { id: "asc" },
+  });
+}
+
+export async function findProductImagesByIds(productIds: number[]) {
+  if (productIds.length === 0) return new Map<number, string>();
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    select: { id: true, image: true },
+  });
+  return new Map(products.map((p) => [p.id, p.image]));
+}
+
+export async function findLatestPaymentIntentByOrderId(orderId: number) {
+  return prisma.paymentIntent.findFirst({
+    where: { orderId },
+    orderBy: { createdAt: "desc" },
+    select: { status: true, provider: true, amount: true, currency: true },
+  });
 }
 
 export async function updateOrderStatusById(id: number, status: string) {

@@ -6,18 +6,22 @@ const publicRoutes: Array<{ method?: string; pattern: RegExp }> = [
   { pattern: /^\/docs(?:\/|$)/ },
   { pattern: /^\/openapi\.json(?:\/|$)/ },
   { method: "POST", pattern: /^\/api\/auth\/login(?:\/|$)/ },
+  { method: "POST", pattern: /^\/api\/auth\/google(?:\/|$)/ },
+  { method: "GET", pattern: /^\/api\/auth\/verify-email(?:\/|$)/ },
+  { method: "POST", pattern: /^\/api\/auth\/resend-verification(?:\/|$)/ },
   { method: "GET", pattern: /^\/api\/products\/?$/ },
   { method: "GET", pattern: /^\/api\/product-categories\/?$/ },
   { method: "GET", pattern: /^\/api\/testimonials(?:\/|$)/ },
   { method: "GET", pattern: /^\/api\/banners\/?$/ },
   { method: "POST", pattern: /^\/api\/messages(?:\/|$)/ },
-  { method: "POST", pattern: /^\/api\/orders(?:\/|$)/ },
   { method: "POST", pattern: /^\/api\/users\/?$/ },
 ];
 
 const authOnlyRoutes: Array<{ method?: string; pattern: RegExp }> = [
   { method: "GET", pattern: /^\/api\/auth\/me(?:\/|$)/ },
   { method: "POST", pattern: /^\/api\/auth\/logout(?:\/|$)/ },
+  { method: "GET", pattern: /^\/api\/orders\/?$/ },
+  { method: "GET", pattern: /^\/api\/orders\/\d+(?:\/|$)/ },
 ];
 
 function matchRoute(method: string, path: string, routes: Array<{ method?: string; pattern: RegExp }>) {
