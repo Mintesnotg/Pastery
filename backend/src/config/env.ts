@@ -31,4 +31,9 @@ export const env = {
   bootstrapEmail: process.env.ADMIN_BOOTSTRAP_EMAIL ?? "admin@houseofbread.local",
   bootstrapPassword: required("ADMIN_BOOTSTRAP_PASSWORD", "change-me-now"),
   sessionTtlDays: Number(process.env.SESSION_TTL_DAYS ?? 7),
+  googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  resendApiKey: process.env.RESEND_API_KEY ?? "",
+  mailFrom: process.env.MAIL_FROM ?? "House of Bread <onboarding@resend.dev>",
+  frontendUrl: process.env.FRONTEND_URL ?? process.env.CORS_ORIGIN ?? "http://localhost:3000",
 };

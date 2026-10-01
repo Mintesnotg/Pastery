@@ -22,6 +22,6 @@ export const navLinks = [
   { href: "/gallery", label: "Gallery" },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact Us" },
-  { href: "/order", label: "Order Online", cta: true },
+  { href: "/order", label: "Add to Cart", cta: true },
   { href: "/account", label: "Account", cta: false },
 ];

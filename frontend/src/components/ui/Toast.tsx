@@ -29,7 +29,7 @@ export function Toast({
   return (
     <div
       className={`fixed right-4 top-4 z-60 flex items-center gap-3 rounded-xl px-4 py-3 text-white shadow-lg transition-all ${
-        toast.type === "success" ? "bg-green-600" : "bg-red-600"
+        toast.type === "success" ? "bg-crust" : "bg-red-600"
       }`}
     >
       {toast.type === "success" ? (

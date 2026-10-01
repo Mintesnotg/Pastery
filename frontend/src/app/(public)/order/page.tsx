@@ -1,6 +1,6 @@
 import PageHeader from "@/components/PageHeader";
-import OrderPage from "./OrderPage";
-import { getProducts, toProductItem } from "@/lib/products";
+import OrderCheckout from "@/components/order/OrderCheckout";
+import { getProductCategories, getProducts } from "@/lib/products";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,11 @@ export const metadata = {
 };
 
 export default async function OrderPageRoute() {
-  const products = (await getProducts()).map(toProductItem);
+  const [products, categories] = await Promise.all([
+    getProducts(),
+    getProductCategories(),
+  ]);
+
   return (
     <>
       <PageHeader
@@ -17,7 +21,7 @@ export default async function OrderPageRoute() {
         title="Order Fresh Bakes for Pickup"
         subtitle="Choose from today's menu, pick a pickup time, and we'll bake it fresh. Pay when you collect."
       />
-      <OrderPage products={products} />
+      <OrderCheckout products={products} categories={categories} variant="public" />
     </>
   );
 }

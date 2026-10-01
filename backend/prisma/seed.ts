@@ -217,10 +217,13 @@ async function main() {
   const adminUser = await prisma.user.create({
     data: {
       email: "admin@houseofbread.local",
+      firstName: "Bootstrap",
+      lastName: "Admin",
       fullName: "Bootstrap Admin",
       passwordHash: adminPassword.hash,
       passwordSalt: adminPassword.salt,
       active: true,
+      emailVerifiedAt: new Date(),
     },
   });
 
@@ -232,7 +235,7 @@ async function main() {
     },
   });
 
-  await prisma.role.create({
+  const customerRole = await prisma.role.create({
     data: {
       key: "customer",
       name: "Customer",
@@ -242,6 +245,9 @@ async function main() {
 
   const permissionKeys = [
     { key: "view.orders", name: "View Orders" },
+    { key: "create.order", name: "Create Order" },
+    { key: "view.profile", name: "View Profile" },
+    { key: "edit.profile", name: "Edit Profile" },
     { key: "view.messages", name: "View Messages" },
     { key: "view.users", name: "View Users" },
     { key: "view.roles", name: "View Roles" },
@@ -287,17 +293,26 @@ async function main() {
     })),
   });
 
+  const customerPermissionKeys = ["create.order", "view.profile", "edit.profile"] as const;
+  const customerPermissions = permissionRows.filter((p) =>
+    (customerPermissionKeys as readonly string[]).includes(p.key),
+  );
+  await prisma.rolePermission.createMany({
+    data: customerPermissions.map((permission) => ({
+      roleId: customerRole.id,
+      permissionId: permission.id,
+    })),
+  });
+
   const order = await prisma.order.create({
     data: {
+      userId: adminUser.id,
       customerName: "Amina Yusuf",
       email: "amina@example.com",
       phone: "+44 7700 900111",
       pickupDate: "2026-08-14",
       pickupTime: "09:30",
       notes: "Please pack separately for the office team.",
-      subtotal: "15.10",
-      taxTotal: "0.00",
-      discountTotal: "0.00",
       total: "15.10",
       currency: "GBP",
       status: "pending",
@@ -310,21 +325,17 @@ async function main() {
         orderId: order.id,
         productId: productRows[0].id,
         productName: productRows[0].name,
-        productSku: null,
         unitPrice: "4.50",
         quantity: 1,
         lineTotal: "4.50",
-        metadata: { source: "seed" },
       },
       {
         orderId: order.id,
         productId: productRows[1].id,
         productName: productRows[1].name,
-        productSku: null,
         unitPrice: "3.80",
         quantity: 2,
         lineTotal: "7.60",
-        metadata: { source: "seed" },
       },
     ],
   });

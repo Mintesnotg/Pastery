@@ -81,12 +81,20 @@ export async function getUser(id: string) {
 
 export async function createNewUser(
   input: CreateUserInput,
-): Promise<{ user: UserDTO } | { conflict: true } | { invalidRoleIds: true } | { weakPassword: true } | null> {
+  options: { requireEmailVerification?: boolean } = {},
+): Promise<
+  | { user: UserDTO; verificationSent?: boolean }
+  | { conflict: true }
+  | { invalidRoleIds: true }
+  | { weakPassword: true }
+  | null
+> {
   const email = input.email.trim().toLowerCase();
   const password = input.password;
   const firstName = input.firstName.trim();
   const lastName = input.lastName.trim();
   const roleIds = [...new Set(input.roleIds ?? [])];
+  const requireEmailVerification = options.requireEmailVerification ?? false;
 
   if (!email || !password || !firstName || !lastName) return null;
   if (password.length < 8) return null;
@@ -113,6 +121,7 @@ export async function createNewUser(
         lastName,
         fullName,
         active: true,
+        emailVerifiedAt: requireEmailVerification ? null : new Date(),
       },
       tx,
     );
@@ -122,7 +131,15 @@ export async function createNewUser(
   });
 
   if (!created) return null;
-  return { user: toUserDTO(created.user, created.roleIds) };
+
+  let verificationSent = false;
+  if (requireEmailVerification) {
+    const { issueEmailVerification } = await import("../authentication/email-verification.service.js");
+    const issued = await issueEmailVerification(created.user.id, created.user.email);
+    verificationSent = issued.sent.ok;
+  }
+
+  return { user: toUserDTO(created.user, created.roleIds), verificationSent };
 }
 
 export async function updateUser(

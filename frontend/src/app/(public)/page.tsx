@@ -34,7 +34,7 @@ const todayBakes = [
 export default async function HomePage() {
   const [featured, counterProducts, categories] = await Promise.all([
     getProducts({ isSpecial: true }),
-    getProducts({ isSpecial: false }),
+    getProducts(),
     getProductCategories(),
   ]);
 
