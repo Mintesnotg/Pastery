@@ -1,12 +1,24 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
 import { env } from "../../config/env.js";
 
-let client: Resend | null = null;
+let transporter: Transporter | null = null;
 
-function getResend() {
-  if (!env.resendApiKey) return null;
-  if (!client) client = new Resend(env.resendApiKey);
-  return client;
+function getTransporter() {
+  if (!env.smtpHost || !env.smtpUser || !env.smtpPass) return null;
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host: env.smtpHost,
+      port: env.smtpPort,
+      secure: env.smtpSecure,
+      auth: {
+        user: env.smtpUser,
+        pass: env.smtpPass,
+      },
+      requireTLS: !env.smtpSecure && env.smtpPort === 587,
+    });
+  }
+  return transporter;
 }
 
 export async function sendEmail(input: {
@@ -14,25 +26,105 @@ export async function sendEmail(input: {
   subject: string;
   html: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  const resend = getResend();
-  if (!resend) {
-    console.warn("[mailer] RESEND_API_KEY missing; email not sent:", input.subject, input.to);
+  // #region agent log
+  const pass = env.smtpPass;
+  fetch("http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f1fde4" },
+    body: JSON.stringify({
+      sessionId: "f1fde4",
+      runId: "post-fix",
+      hypothesisId: "A",
+      location: "mailer.ts:sendEmail:entry",
+      message: "SMTP env snapshot (no secrets)",
+      data: {
+        host: env.smtpHost,
+        port: env.smtpPort,
+        secure: env.smtpSecure,
+        user: env.smtpUser,
+        mailFrom: env.mailFrom,
+        passLength: pass.length,
+        passStartsWithAt: pass.startsWith("@"),
+        passEndsWithHash: pass.endsWith("#"),
+        hashCountInPass: (pass.match(/#/g) ?? []).length,
+        expectedFullPassLength: 14,
+        likelyDotenvHashTruncation: pass.length < 14 && !(pass.match(/#/g)?.length),
+        configured: Boolean(env.smtpHost && env.smtpUser && pass),
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+
+  const mailer = getTransporter();
+  if (!mailer) {
+    // #region agent log
+    fetch("http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f1fde4" },
+      body: JSON.stringify({
+        sessionId: "f1fde4",
+        runId: "post-fix",
+        hypothesisId: "E",
+        location: "mailer.ts:sendEmail:no-transporter",
+        message: "Transporter null — SMTP env incomplete",
+        data: { hasHost: Boolean(env.smtpHost), hasUser: Boolean(env.smtpUser), hasPass: Boolean(env.smtpPass) },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    console.warn("[mailer] SMTP not configured; email not sent:", input.subject, input.to);
     return { ok: false, error: "Email service not configured" };
   }
 
   try {
-    const { error } = await resend.emails.send({
+    await mailer.sendMail({
       from: env.mailFrom,
-      to: [input.to],
+      to: input.to,
       subject: input.subject,
       html: input.html,
     });
-    if (error) {
-      console.error("[mailer] Resend error:", error);
-      return { ok: false, error: error.message ?? "Failed to send email" };
-    }
+    // #region agent log
+    fetch("http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f1fde4" },
+      body: JSON.stringify({
+        sessionId: "f1fde4",
+        runId: "post-fix",
+        hypothesisId: "B",
+        location: "mailer.ts:sendEmail:success",
+        message: "SMTP sendMail succeeded",
+        data: { toDomain: input.to.split("@")[1] ?? "" },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
     return { ok: true };
   } catch (err) {
+    const e = err as Error & { code?: string; responseCode?: number; response?: string; command?: string };
+    // #region agent log
+    fetch("http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f1fde4" },
+      body: JSON.stringify({
+        sessionId: "f1fde4",
+        runId: "post-fix",
+        hypothesisId: "A-B-C",
+        location: "mailer.ts:sendEmail:catch",
+        message: "SMTP sendMail failed",
+        data: {
+          code: e.code ?? null,
+          responseCode: e.responseCode ?? null,
+          command: e.command ?? null,
+          responseSnippet: typeof e.response === "string" ? e.response.slice(0, 120) : null,
+          errName: e.name,
+          passLength: env.smtpPass.length,
+          hashCountInPass: (env.smtpPass.match(/#/g) ?? []).length,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
     console.error("[mailer] send failed:", err);
     return { ok: false, error: (err as Error).message };
   }

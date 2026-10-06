@@ -33,7 +33,11 @@ export const env = {
   sessionTtlDays: Number(process.env.SESSION_TTL_DAYS ?? 7),
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-  resendApiKey: process.env.RESEND_API_KEY ?? "",
-  mailFrom: process.env.MAIL_FROM ?? "House of Bread <onboarding@resend.dev>",
+  smtpHost: process.env.SMTP_HOST ?? "",
+  smtpPort: Number(process.env.SMTP_PORT ?? 587),
+  smtpSecure: process.env.SMTP_SECURE === "true",
+  smtpUser: process.env.SMTP_USER ?? "",
+  smtpPass: process.env.SMTP_PASS ?? "",
+  mailFrom: process.env.MAIL_FROM ?? "House of Bread <info@houseofbreadlondon.co.uk>",
   frontendUrl: process.env.FRONTEND_URL ?? process.env.CORS_ORIGIN ?? "http://localhost:3000",
 };
