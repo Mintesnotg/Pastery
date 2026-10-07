@@ -21,58 +21,128 @@ function getTransporter() {
   return transporter;
 }
 
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+export function verificationEmailHtml(verifyUrl: string, name?: string) {
+  const greeting = name ? `Hi ${escapeHtml(name)},` : "Hello,";
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>Confirm your email</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F6EFE6;">
+
+  <!-- Preheader: preview text shown in the inbox list -->
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+    Confirm your email to start ordering from House of Bread. This link expires in 24 hours.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F6EFE6;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+               style="max-width:560px;background-color:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid #EADBC8;">
+
+          <!-- Header band -->
+          <tr>
+            <td align="center" style="background-color:#8B4513;padding:28px 24px;">
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:26px;letter-spacing:1px;color:#FFF8EE;font-weight:bold;">
+                House of Bread
+              </div>
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:13px;color:#F0D9BC;margin-top:4px;letter-spacing:2px;text-transform:uppercase;">
+                Freshly baked, London
+              </div>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:36px 32px 8px 32px;font-family:Georgia,'Times New Roman',serif;color:#3F2A18;">
+              <h1 style="margin:0 0 16px 0;font-size:24px;line-height:1.3;font-weight:bold;color:#3F2A18;">
+                Confirm your email
+              </h1>
+              <p style="margin:0 0 12px 0;font-size:16px;line-height:1.6;">${greeting}</p>
+              <p style="margin:0;font-size:16px;line-height:1.6;">
+                Thanks for joining House of Bread. Please verify your email address to activate your account and start ordering.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Bulletproof button (works in Outlook too) -->
+          <tr>
+            <td align="center" style="padding:28px 32px;">
+              <!--[if mso]>
+              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${verifyUrl}"
+                style="height:48px;v-text-anchor:middle;width:220px;" arcsize="50%" stroke="f" fillcolor="#8B4513">
+                <w:anchorlock/>
+                <center style="color:#ffffff;font-family:Georgia,serif;font-size:16px;font-weight:bold;">Verify email</center>
+              </v:roundrect>
+              <![endif]-->
+              <!--[if !mso]><!-- -->
+              <a href="${verifyUrl}" target="_blank"
+                 style="display:inline-block;background-color:#8B4513;color:#FFFFFF;font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:bold;line-height:48px;text-align:center;text-decoration:none;padding:0 36px;border-radius:999px;">
+                Verify email
+              </a>
+              <!--<![endif]-->
+            </td>
+          </tr>
+
+          <!-- Expiry notice -->
+          <tr>
+            <td style="padding:0 32px 24px 32px;font-family:Georgia,'Times New Roman',serif;">
+              <p style="margin:0;font-size:14px;line-height:1.6;color:#6B5A4A;text-align:center;">
+                This link expires in <strong>24 hours</strong>.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Fallback link -->
+          <tr>
+            <td style="padding:0 32px 32px 32px;">
+              <div style="background-color:#FBF6EE;border:1px solid #EADBC8;border-radius:10px;padding:14px 16px;font-family:Georgia,'Times New Roman',serif;">
+                <p style="margin:0 0 6px 0;font-size:13px;color:#6B5A4A;">Button not working? Copy and paste this link into your browser:</p>
+                <p style="margin:0;font-size:12px;line-height:1.5;color:#8B4513;word-break:break-all;">
+                  <a href="${verifyUrl}" style="color:#8B4513;text-decoration:underline;">${verifyUrl}</a>
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="border-top:1px solid #EADBC8;padding:20px 32px 28px 32px;font-family:Georgia,'Times New Roman',serif;">
+              <p style="margin:0 0 8px 0;font-size:12px;line-height:1.6;color:#9A8575;">
+                If you didn't create an account with House of Bread, you can safely ignore this email and no account will be activated.
+              </p>
+              <p style="margin:0;font-size:12px;line-height:1.6;color:#9A8575;">
+                &copy; ${new Date().getFullYear()} House of Bread &middot; London, UK
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
 export async function sendEmail(input: {
   to: string;
   subject: string;
   html: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  // #region agent log
-  const pass = env.smtpPass;
-  fetch("http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f1fde4" },
-    body: JSON.stringify({
-      sessionId: "f1fde4",
-      runId: "post-fix",
-      hypothesisId: "A",
-      location: "mailer.ts:sendEmail:entry",
-      message: "SMTP env snapshot (no secrets)",
-      data: {
-        host: env.smtpHost,
-        port: env.smtpPort,
-        secure: env.smtpSecure,
-        user: env.smtpUser,
-        mailFrom: env.mailFrom,
-        passLength: pass.length,
-        passStartsWithAt: pass.startsWith("@"),
-        passEndsWithHash: pass.endsWith("#"),
-        hashCountInPass: (pass.match(/#/g) ?? []).length,
-        expectedFullPassLength: 14,
-        likelyDotenvHashTruncation: pass.length < 14 && !(pass.match(/#/g)?.length),
-        configured: Boolean(env.smtpHost && env.smtpUser && pass),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-
   const mailer = getTransporter();
   if (!mailer) {
-    // #region agent log
-    fetch("http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f1fde4" },
-      body: JSON.stringify({
-        sessionId: "f1fde4",
-        runId: "post-fix",
-        hypothesisId: "E",
-        location: "mailer.ts:sendEmail:no-transporter",
-        message: "Transporter null — SMTP env incomplete",
-        data: { hasHost: Boolean(env.smtpHost), hasUser: Boolean(env.smtpUser), hasPass: Boolean(env.smtpPass) },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     console.warn("[mailer] SMTP not configured; email not sent:", input.subject, input.to);
     return { ok: false, error: "Email service not configured" };
   }
@@ -84,69 +154,17 @@ export async function sendEmail(input: {
       subject: input.subject,
       html: input.html,
     });
-    // #region agent log
-    fetch("http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f1fde4" },
-      body: JSON.stringify({
-        sessionId: "f1fde4",
-        runId: "post-fix",
-        hypothesisId: "B",
-        location: "mailer.ts:sendEmail:success",
-        message: "SMTP sendMail succeeded",
-        data: { toDomain: input.to.split("@")[1] ?? "" },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     return { ok: true };
   } catch (err) {
-    const e = err as Error & { code?: string; responseCode?: number; response?: string; command?: string };
-    // #region agent log
-    fetch("http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f1fde4" },
-      body: JSON.stringify({
-        sessionId: "f1fde4",
-        runId: "post-fix",
-        hypothesisId: "A-B-C",
-        location: "mailer.ts:sendEmail:catch",
-        message: "SMTP sendMail failed",
-        data: {
-          code: e.code ?? null,
-          responseCode: e.responseCode ?? null,
-          command: e.command ?? null,
-          responseSnippet: typeof e.response === "string" ? e.response.slice(0, 120) : null,
-          errName: e.name,
-          passLength: env.smtpPass.length,
-          hashCountInPass: (env.smtpPass.match(/#/g) ?? []).length,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     console.error("[mailer] send failed:", err);
     return { ok: false, error: (err as Error).message };
   }
 }
 
-export async function sendVerificationEmail(email: string, verifyUrl: string) {
+export async function sendVerificationEmail(email: string, verifyUrl: string, name?: string) {
   return sendEmail({
     to: email,
     subject: "Verify your House of Bread account",
-    html: `
-      <div style="font-family: Georgia, serif; color: #3F2A18; line-height: 1.5;">
-        <h1 style="font-size: 22px;">Confirm your email</h1>
-        <p>Thanks for joining House of Bread. Click the button below to verify your account.</p>
-        <p style="margin: 28px 0;">
-          <a href="${verifyUrl}"
-             style="background:#8B4513;color:#fff;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:600;">
-            Verify email
-          </a>
-        </p>
-        <p style="font-size: 13px; color: #6B5A4A;">Or open this link:<br/>${verifyUrl}</p>
-        <p style="font-size: 12px; color: #9A8575;">This link expires in 24 hours.</p>
-      </div>
-    `,
+    html: verificationEmailHtml(verifyUrl, name),
   });
 }

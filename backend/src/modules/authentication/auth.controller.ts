@@ -105,7 +105,7 @@ export async function resendVerificationController(req: Request, res: Response) 
     return res.json({ success: true, message: "If an unverified account exists, a new email was sent." });
   }
 
-  const issued = await issueEmailVerification(user.id, user.email);
+  const issued = await issueEmailVerification(user.id, user.email, user.firstName || undefined);
   if (!issued.sent.ok) {
     return sendError(res, 502, issued.sent.error || "Failed to send verification email");
   }

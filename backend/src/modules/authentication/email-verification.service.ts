@@ -13,18 +13,17 @@ export function createRawToken() {
   return crypto.randomBytes(32).toString("hex");
 }
 
-export async function issueEmailVerification(userId: string, email: string) {
+export async function issueEmailVerification(userId: string, email: string, name?: string) {
   const raw = createRawToken();
   const tokenHash = hashToken(raw);
   const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
 
-  await prisma.emailVerificationToken.deleteMany({ where: { userId } });
   await prisma.emailVerificationToken.create({
-    data: { userId, tokenHash, expiresAt },
+    data: { userId, tokenHash, expiresAt, isAccountVerified: false },
   });
 
   const verifyUrl = `${env.frontendUrl.replace(/\/+$/, "")}/account/verify?token=${encodeURIComponent(raw)}`;
-  const sent = await sendVerificationEmail(email, verifyUrl);
+  const sent = await sendVerificationEmail(email, verifyUrl, name);
   return { raw, verifyUrl, sent };
 }
 
@@ -33,9 +32,8 @@ export async function consumeEmailVerificationToken(rawToken: string) {
   const row = await prisma.emailVerificationToken.findUnique({
     where: { tokenHash },
   });
-  if (!row) return { error: "invalid" as const };
+  if (!row || row.isAccountVerified) return { error: "invalid" as const };
   if (row.expiresAt.getTime() < Date.now()) {
-    await prisma.emailVerificationToken.delete({ where: { id: row.id } }).catch(() => null);
     return { error: "expired" as const };
   }
 
@@ -44,7 +42,10 @@ export async function consumeEmailVerificationToken(rawToken: string) {
       where: { id: row.userId },
       data: { emailVerifiedAt: new Date() },
     });
-    await tx.emailVerificationToken.deleteMany({ where: { userId: row.userId } });
+    await tx.emailVerificationToken.update({
+      where: { id: row.id },
+      data: { isAccountVerified: true },
+    });
   });
 
   return { userId: row.userId };

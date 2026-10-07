@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -22,21 +22,101 @@ type Props = {
   disabled?: boolean;
 };
 
+/** GSI allows only one initialize(); share it across mounts. */
+let gsiInitializedForClientId: string | null = null;
+let gsiCredentialHandler: ((idToken: string) => void) | null = null;
+
+function ensureGsiInitialized(clientId: string) {
+  if (!window.google?.accounts?.id) return false;
+  if (gsiInitializedForClientId === clientId) return true;
+  window.google.accounts.id.initialize({
+    client_id: clientId,
+    callback: (response: { credential?: string }) => {
+      if (response.credential) gsiCredentialHandler?.(response.credential);
+    },
+    ux_mode: "popup",
+  });
+  gsiInitializedForClientId = clientId;
+  return true;
+}
+
 export function GoogleSignInButton({ onCredential, disabled }: Props) {
   const btnRef = useRef<HTMLDivElement>(null);
+  const renderedRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [scriptError, setScriptError] = useState("");
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+  const instanceId = useRef(`gsi-${Math.random().toString(36).slice(2, 8)}`);
+  const initCountRef = useRef(0);
 
-  const init = useCallback(() => {
+  useEffect(() => {
+    gsiCredentialHandler = (token) => {
+      void onCredential(token);
+    };
+  }, [onCredential]);
+
+  // #region agent log
+  useEffect(() => {
+    fetch("http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f1fde4" },
+      body: JSON.stringify({
+        sessionId: "f1fde4",
+        runId: "post-fix",
+        hypothesisId: "A-D",
+        location: "GoogleSignInButton.tsx:mount",
+        message: "GoogleSignInButton mounted",
+        data: { instanceId: instanceId.current },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    return () => {
+      fetch("http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f1fde4" },
+        body: JSON.stringify({
+          sessionId: "f1fde4",
+          runId: "post-fix",
+          hypothesisId: "A-D",
+          location: "GoogleSignInButton.tsx:unmount",
+          message: "GoogleSignInButton unmounted",
+          data: { instanceId: instanceId.current },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+    };
+  }, []);
+  // #endregion
+
+  const setupButton = (source: "effect" | "script") => {
     if (!clientId || !btnRef.current || !window.google?.accounts?.id) return;
-    window.google.accounts.id.initialize({
-      client_id: clientId,
-      callback: (response: { credential?: string }) => {
-        if (response.credential) void onCredential(response.credential);
-      },
-      ux_mode: "popup",
-    });
+    const didInit = gsiInitializedForClientId !== clientId;
+    if (!ensureGsiInitialized(clientId)) return;
+
+    initCountRef.current += 1;
+    // #region agent log
+    fetch("http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f1fde4" },
+      body: JSON.stringify({
+        sessionId: "f1fde4",
+        runId: "post-fix",
+        hypothesisId: "A-B-C-E",
+        location: "GoogleSignInButton.tsx:setupButton",
+        message: "GSI setupButton",
+        data: {
+          instanceId: instanceId.current,
+          source,
+          setupCount: initCountRef.current,
+          calledInitialize: didInit,
+          alreadyRendered: renderedRef.current,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+
+    if (renderedRef.current) return;
     btnRef.current.innerHTML = "";
     window.google.accounts.id.renderButton(btnRef.current, {
       theme: "outline",
@@ -45,12 +125,14 @@ export function GoogleSignInButton({ onCredential, disabled }: Props) {
       text: "continue_with",
       shape: "pill",
     });
+    renderedRef.current = true;
     setReady(true);
-  }, [clientId, onCredential]);
+  };
 
   useEffect(() => {
-    if (window.google?.accounts?.id) init();
-  }, [init]);
+    setupButton("effect");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setup once when script/client ready; credential via module handler
+  }, [clientId]);
 
   if (!clientId) {
     return (
@@ -65,7 +147,7 @@ export function GoogleSignInButton({ onCredential, disabled }: Props) {
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
-        onLoad={() => init()}
+        onLoad={() => setupButton("script")}
         onError={() => setScriptError("Failed to load Google sign-in")}
       />
       <div className="flex flex-col items-center gap-2">

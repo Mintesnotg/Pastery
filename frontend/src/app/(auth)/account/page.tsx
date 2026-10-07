@@ -597,11 +597,6 @@ function AccountPageInner() {
                   {!(loading && tab === "login") && <ArrowRight size={16} />}
                 </button>
 
-                <div className="relative py-2 text-center text-xs font-medium uppercase tracking-wide text-[#9A8573]">
-                  <span className="relative z-10 bg-white px-3">or</span>
-                  <span className="absolute inset-x-0 top-1/2 h-px bg-[#EFE4D8]" />
-                </div>
-                <GoogleSignInButton onCredential={handleGoogleCredential} disabled={loading} />
               </form>
 
               <form
@@ -738,13 +733,14 @@ function AccountPageInner() {
                   {!(loading && tab === "register") && <ArrowRight size={16} />}
                 </button>
 
-                <div className="relative py-2 text-center text-xs font-medium uppercase tracking-wide text-[#9A8573]">
-                  <span className="relative z-10 bg-white px-3">or</span>
-                  <span className="absolute inset-x-0 top-1/2 h-px bg-[#EFE4D8]" />
-                </div>
-                <GoogleSignInButton onCredential={handleGoogleCredential} disabled={loading} />
               </form>
             </div>
+
+            <div className="relative mt-4 py-2 text-center text-xs font-medium uppercase tracking-wide text-[#9A8573]">
+              <span className="relative z-10 bg-white px-3">or</span>
+              <span className="absolute inset-x-0 top-1/2 h-px bg-[#EFE4D8]" />
+            </div>
+            <GoogleSignInButton onCredential={handleGoogleCredential} disabled={loading} />
           </div>
 
           <p className="mt-8 text-center text-xs text-[#9A8573]">

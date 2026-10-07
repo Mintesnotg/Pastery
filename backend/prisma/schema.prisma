@@ -156,12 +156,13 @@ model OAuthAccount {
 }
 
 model EmailVerificationToken {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  tokenHash String   @map("token_hash")
-  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  tokenHash         String   @map("token_hash")
+  expiresAt         DateTime @map("expires_at") @db.Timestamptz(6)
+  isAccountVerified Boolean  @default(false) @map("is_account_verified")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([tokenHash], map: "email_verification_tokens_hash_unique")
   @@index([userId], map: "email_verification_tokens_user_idx")
@@ -216,6 +217,7 @@ model RolePermission {
   @@id([roleId, permissionId], map: "role_permissions_role_permission_unique")
   @@map("role_permissions")
 }
+
 
 model Order {
   id             Int             @id @default(autoincrement())
