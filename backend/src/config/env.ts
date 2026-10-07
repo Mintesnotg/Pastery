@@ -22,9 +22,26 @@ const required = (name: string, fallback?: string) => {
   return value;
 };
 
+/** GoDaddy PaaS injects DB_*; local/dev uses DATABASE_URL. */
+export function resolveDatabaseUrl(): string {
+  const host = process.env.DB_HOST;
+  if (host) {
+    const user = encodeURIComponent(process.env.DB_USER ?? "");
+    const pass = encodeURIComponent(process.env.DB_PASSWORD ?? "");
+    const port = process.env.DB_PORT ?? "3306";
+    const name = process.env.DB_NAME ?? "";
+    const auth = pass ? `${user}:${pass}` : user;
+    return `mysql://${auth}@${host}:${port}/${name}`;
+  }
+  return required("DATABASE_URL");
+}
+
+const databaseUrl = resolveDatabaseUrl();
+process.env.DATABASE_URL = databaseUrl;
+
 export const env = {
   port: Number(process.env.PORT ?? 4000),
-  databaseUrl: required("DATABASE_URL"),
+  databaseUrl,
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:3000",
   jwtSecret: required("JWT_SECRET", "dev-secret-change-me"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "15m",
@@ -40,4 +57,6 @@ export const env = {
   smtpPass: process.env.SMTP_PASS ?? "",
   mailFrom: process.env.MAIL_FROM ?? "House of Bread <info@houseofbreadlondon.co.uk>",
   frontendUrl: process.env.FRONTEND_URL ?? process.env.CORS_ORIGIN ?? "http://localhost:3000",
+  /** `godaddy` | `smtp` | `auto` (godaddy when NODE_ENV=production or DB_HOST set) */
+  emailTransport: (process.env.EMAIL_TRANSPORT ?? "auto").toLowerCase(),
 };

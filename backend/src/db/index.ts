@@ -1,4 +1,6 @@
 import { PrismaClient } from "@prisma/client";
+// Resolve DATABASE_URL from DB_* (GoDaddy) or .env before PrismaClient reads it
+import "../config/env.js";
 
 const globalForPrisma = globalThis as typeof globalThis & {
   __houseOfBreadPrisma?: PrismaClient;

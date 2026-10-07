@@ -1,8 +1,16 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { env } from "../../config/env.js";
+import { sendEmailViaGateway } from "./godaddy-email.js";
 
 let transporter: Transporter | null = null;
+
+function useGodaddyEmail(): boolean {
+  if (env.emailTransport === "godaddy") return true;
+  if (env.emailTransport === "smtp") return false;
+  // auto: platform production / GoDaddy DB present
+  return process.env.NODE_ENV === "production" || Boolean(process.env.DB_HOST);
+}
 
 function getTransporter() {
   if (!env.smtpHost || !env.smtpUser || !env.smtpPass) return null;
@@ -141,6 +149,21 @@ export async function sendEmail(input: {
   subject: string;
   html: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (useGodaddyEmail()) {
+    try {
+      // Omit `from` — gateway uses verified/canonical sender on PaaS.
+      await sendEmailViaGateway({
+        to: input.to,
+        subject: input.subject,
+        html: input.html,
+      });
+      return { ok: true };
+    } catch (err) {
+      console.error("[mailer] GoDaddy gateway send failed:", err);
+      return { ok: false, error: "Failed to send email" };
+    }
+  }
+
   const mailer = getTransporter();
   if (!mailer) {
     console.warn("[mailer] SMTP not configured; email not sent:", input.subject, input.to);

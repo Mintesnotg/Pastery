@@ -22,7 +22,14 @@ import {
 } from "./email-verification.service.js";
 
 function setSessionCookie(res: Response, token: string) {
-  res.cookie("session", token, { httpOnly: true, sameSite: "lax", secure: false, path: "/" });
+  const isProd = process.env.NODE_ENV === "production";
+  res.cookie("session", token, {
+    httpOnly: true,
+    // Cross-subdomain / two-host PaaS: None+Secure required for credentialed fetches
+    sameSite: isProd ? "none" : "lax",
+    secure: isProd,
+    path: "/",
+  });
 }
 
 export async function loginController(req: Request, res: Response) {

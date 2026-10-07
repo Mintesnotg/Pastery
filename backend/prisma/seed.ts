@@ -2,9 +2,30 @@ import { prisma } from "../src/db/index.js";
 import { hashPassword } from "../src/shared/lib/auth.js";
 
 async function main() {
-  await prisma.$executeRawUnsafe(
-    `TRUNCATE TABLE payment_events, payments, payment_intents, order_items, orders, role_permissions, user_roles, permissions, roles, users, messages, banners, testimonials, products, product_categories RESTART IDENTITY CASCADE`,
-  );
+  // MySQL: truncate in FK-safe order with checks disabled
+  await prisma.$executeRawUnsafe(`SET FOREIGN_KEY_CHECKS = 0`);
+  for (const table of [
+    "payment_events",
+    "payments",
+    "payment_intents",
+    "order_items",
+    "orders",
+    "role_permissions",
+    "user_roles",
+    "permissions",
+    "roles",
+    "email_verification_tokens",
+    "oauth_accounts",
+    "users",
+    "messages",
+    "banners",
+    "testimonials",
+    "products",
+    "product_categories",
+  ]) {
+    await prisma.$executeRawUnsafe(`TRUNCATE TABLE \`${table}\``);
+  }
+  await prisma.$executeRawUnsafe(`SET FOREIGN_KEY_CHECKS = 1`);
 
   const categories = await Promise.all(
     [
