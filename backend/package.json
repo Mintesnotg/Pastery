@@ -19,7 +19,9 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:pull": "prisma db pull",
-    "migrate": "prisma migrate deploy"
+    "migrate": "prisma migrate deploy",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -47,6 +49,7 @@
     "@types/node": "^22.19.15",
     "@types/nodemailer": "^7.0.12",
     "tsx": "^4.20.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }

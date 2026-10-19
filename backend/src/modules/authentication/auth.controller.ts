@@ -13,12 +13,13 @@ import {
   loginSchema,
   profileUpdateSchema,
   resendVerificationSchema,
+  verifyOtpSchema,
 } from "./auth.validator.js";
 import { loginWithGoogleIdToken, buildSessionForUser } from "./google-auth.service.js";
 import {
   canResendVerification,
-  consumeEmailVerificationToken,
   issueEmailVerification,
+  verifyEmailOtp,
 } from "./email-verification.service.js";
 
 function setSessionCookie(res: Response, token: string) {
@@ -74,14 +75,21 @@ export async function googleAuthController(req: Request, res: Response) {
   });
 }
 
-export async function verifyEmailController(req: Request, res: Response) {
-  const token = typeof req.query.token === "string" ? req.query.token : "";
-  if (!token) return sendError(res, 400, "Missing verification token");
+export async function verifyOtpController(req: Request, res: Response) {
+  const parsed = verifyOtpSchema.safeParse(req.body);
+  if (!parsed.success) return sendError(res, 400, "Enter a valid 6-digit code");
 
-  const result = await consumeEmailVerificationToken(token);
+  const email = parsed.data.email.trim().toLowerCase();
+  const result = await verifyEmailOtp(email, parsed.data.code);
   if ("error" in result) {
-    if (result.error === "expired") return sendError(res, 400, "Verification link expired");
-    return sendError(res, 400, "Invalid verification link");
+    if (result.error === "expired") return sendError(res, 400, "Code expired. Request a new one.");
+    if (result.error === "locked") {
+      return sendError(res, 400, "Too many incorrect attempts. Request a new code.");
+    }
+    if (result.error === "already_verified") {
+      return sendError(res, 400, "Email is already verified. You can sign in.");
+    }
+    return sendError(res, 400, "Incorrect code. Please try again.");
   }
 
   const user = await findUserById(result.userId);
@@ -109,15 +117,18 @@ export async function resendVerificationController(req: Request, res: Response) 
   const user = await findActiveUserByEmail(email);
   // Always return success-shaped response to avoid email enumeration
   if (!user || user.emailVerifiedAt) {
-    return res.json({ success: true, message: "If an unverified account exists, a new email was sent." });
+    return res.json({ success: true, message: "If an unverified account exists, a new code was sent." });
   }
 
   const issued = await issueEmailVerification(user.id, user.email, user.firstName || undefined);
+  if (issued.rateLimited) {
+    return sendError(res, 429, issued.sent.ok ? "Please wait before requesting another email" : issued.sent.error);
+  }
   if (!issued.sent.ok) {
     return sendError(res, 502, issued.sent.error || "Failed to send verification email");
   }
 
-  res.json({ success: true, message: "Verification email sent." });
+  res.json({ success: true, message: "Verification code sent." });
 }
 
 export async function meController(req: AuthedRequest, res: Response) {

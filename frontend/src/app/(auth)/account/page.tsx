@@ -303,30 +303,11 @@ function AccountPageInner() {
     }
   };
 
-  const handleResendVerification = async () => {
-    const email = pendingVerifyEmail || loginForm.email.trim().toLowerCase();
-    if (!email) {
-      setApiError("Enter your email to resend verification.");
-      return;
-    }
-    setLoading(true);
-    setApiError("");
-    try {
-      const res = await fetch(apiUrl("/api/auth/resend-verification"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error((data as { error?: string }).error || "Could not resend email");
-      }
-      setSuccessMessage((data as { message?: string }).message || "Verification email sent.");
-    } catch (err) {
-      setApiError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
+  const goToVerify = (email: string) => {
+    const next = searchParams.get("next");
+    const qs = new URLSearchParams({ email });
+    if (next) qs.set("next", next);
+    router.push(`/account/verify?${qs.toString()}`);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -357,9 +338,10 @@ function AccountPageInner() {
     } catch (err) {
       const e = err as Error & { email?: string };
       if (e.message === "EMAIL_NOT_VERIFIED") {
-        setPendingVerifyEmail(e.email ?? email);
-        setApiError("Please verify your email before signing in. Check your inbox or resend below.");
-        setSuccessMessage("");
+        const pendingEmail = e.email ?? email;
+        setPendingVerifyEmail(pendingEmail);
+        goToVerify(pendingEmail);
+        return;
       } else {
         setApiError(e.message);
         setLoginErrors((prev) => ({ ...prev, password: e.message }));
@@ -400,18 +382,15 @@ function AccountPageInner() {
       if (!res.ok) {
         throw new Error((data as { error?: string }).error || "Registration failed");
       }
-      setPendingVerifyEmail(parsed.data.email.trim().toLowerCase());
+      const pendingEmail = parsed.data.email.trim().toLowerCase();
+      setPendingVerifyEmail(pendingEmail);
       setLoginForm((prev) => ({
         ...prev,
-        email: parsed.data.email.trim().toLowerCase(),
+        email: pendingEmail,
         password: "",
       }));
-      setTab("login");
-      setApiError("");
-      setSuccessMessage(
-        (data as { message?: string }).message ||
-          "Account created. Check your email for a verification link before signing in.",
-      );
+      goToVerify(pendingEmail);
+      return;
     } catch (err) {
       setApiError((err as Error).message);
     } finally {
@@ -579,10 +558,10 @@ function AccountPageInner() {
                   <button
                     type="button"
                     disabled={loading}
-                    onClick={() => void handleResendVerification()}
+                    onClick={() => goToVerify(pendingVerifyEmail)}
                     className="w-full cursor-pointer rounded-full border border-[#E6D9CB] bg-[#FFF8F3] px-4 py-2.5 text-sm font-medium text-[#734F32] transition hover:bg-[#FDEBDD] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Resend verification email 
+                    Enter verification code
                   </button>
                 )}
 

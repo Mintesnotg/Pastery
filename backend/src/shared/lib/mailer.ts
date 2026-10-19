@@ -32,8 +32,9 @@ function getTransporter() {
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-export function verificationEmailHtml(verifyUrl: string, name?: string) {
+export function verificationEmailHtml(otp: string, name?: string) {
   const greeting = name ? `Hi ${escapeHtml(name)},` : "Hello,";
+  const safeOtp = escapeHtml(otp);
 
   return `
 <!DOCTYPE html>
@@ -42,13 +43,13 @@ export function verificationEmailHtml(verifyUrl: string, name?: string) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light" />
-  <title>Confirm your email</title>
+  <title>Your verification code</title>
 </head>
 <body style="margin:0;padding:0;background-color:#F6EFE6;">
 
   <!-- Preheader: preview text shown in the inbox list -->
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-    Confirm your email to start ordering from House of Bread. This link expires in 24 hours.
+    Your House of Bread verification code is ${safeOtp}. It expires in 30 minutes.
   </div>
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F6EFE6;">
@@ -74,52 +75,32 @@ export function verificationEmailHtml(verifyUrl: string, name?: string) {
           <tr>
             <td style="padding:36px 32px 8px 32px;font-family:Georgia,'Times New Roman',serif;color:#3F2A18;">
               <h1 style="margin:0 0 16px 0;font-size:24px;line-height:1.3;font-weight:bold;color:#3F2A18;">
-                Confirm your email
+                Your verification code
               </h1>
               <p style="margin:0 0 12px 0;font-size:16px;line-height:1.6;">${greeting}</p>
               <p style="margin:0;font-size:16px;line-height:1.6;">
-                Thanks for joining House of Bread. Please verify your email address to activate your account and start ordering.
+                Enter this code on the verification page to activate your House of Bread account.
               </p>
             </td>
           </tr>
 
-          <!-- Bulletproof button (works in Outlook too) -->
+          <!-- OTP code -->
           <tr>
             <td align="center" style="padding:28px 32px;">
-              <!--[if mso]>
-              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${verifyUrl}"
-                style="height:48px;v-text-anchor:middle;width:220px;" arcsize="50%" stroke="f" fillcolor="#8B4513">
-                <w:anchorlock/>
-                <center style="color:#ffffff;font-family:Georgia,serif;font-size:16px;font-weight:bold;">Verify email</center>
-              </v:roundrect>
-              <![endif]-->
-              <!--[if !mso]><!-- -->
-              <a href="${verifyUrl}" target="_blank"
-                 style="display:inline-block;background-color:#8B4513;color:#FFFFFF;font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:bold;line-height:48px;text-align:center;text-decoration:none;padding:0 36px;border-radius:999px;">
-                Verify email
-              </a>
-              <!--<![endif]-->
+              <div style="background-color:#FBF6EE;border:1px solid #EADBC8;border-radius:12px;padding:20px 24px;">
+                <div style="font-family:Georgia,'Times New Roman',serif;font-size:36px;letter-spacing:8px;font-weight:bold;color:#8B4513;line-height:1.2;">
+                  ${safeOtp}
+                </div>
+              </div>
             </td>
           </tr>
 
           <!-- Expiry notice -->
           <tr>
-            <td style="padding:0 32px 24px 32px;font-family:Georgia,'Times New Roman',serif;">
+            <td style="padding:0 32px 32px 32px;font-family:Georgia,'Times New Roman',serif;">
               <p style="margin:0;font-size:14px;line-height:1.6;color:#6B5A4A;text-align:center;">
-                This link expires in <strong>24 hours</strong>.
+                This code expires in <strong>30 minutes</strong>.
               </p>
-            </td>
-          </tr>
-
-          <!-- Fallback link -->
-          <tr>
-            <td style="padding:0 32px 32px 32px;">
-              <div style="background-color:#FBF6EE;border:1px solid #EADBC8;border-radius:10px;padding:14px 16px;font-family:Georgia,'Times New Roman',serif;">
-                <p style="margin:0 0 6px 0;font-size:13px;color:#6B5A4A;">Button not working? Copy and paste this link into your browser:</p>
-                <p style="margin:0;font-size:12px;line-height:1.5;color:#8B4513;word-break:break-all;">
-                  <a href="${verifyUrl}" style="color:#8B4513;text-decoration:underline;">${verifyUrl}</a>
-                </p>
-              </div>
             </td>
           </tr>
 
@@ -184,10 +165,10 @@ export async function sendEmail(input: {
   }
 }
 
-export async function sendVerificationEmail(email: string, verifyUrl: string, name?: string) {
+export async function sendVerificationEmail(email: string, otp: string, name?: string) {
   return sendEmail({
     to: email,
-    subject: "Verify your House of Bread account",
-    html: verificationEmailHtml(verifyUrl, name),
+    subject: "Your House of Bread verification code",
+    html: verificationEmailHtml(otp, name),
   });
 }

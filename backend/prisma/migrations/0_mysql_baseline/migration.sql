@@ -110,16 +110,16 @@ CREATE TABLE `oauth_accounts` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `email_verification_tokens` (
+CREATE TABLE `email_verification_otps` (
     `id` CHAR(36) NOT NULL,
     `user_id` CHAR(36) NOT NULL,
-    `token_hash` VARCHAR(191) NOT NULL,
+    `otp_hash` VARCHAR(191) NOT NULL,
     `expires_at` DATETIME(6) NOT NULL,
-    `is_account_verified` BOOLEAN NOT NULL DEFAULT false,
+    `attempt_count` INTEGER NOT NULL DEFAULT 0,
+    `consumed_at` DATETIME(6) NULL,
     `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
 
-    INDEX `email_verification_tokens_user_idx`(`user_id`),
-    UNIQUE INDEX `email_verification_tokens_hash_unique`(`token_hash`),
+    INDEX `email_verification_otps_user_idx`(`user_id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -266,7 +266,7 @@ ALTER TABLE `products` ADD CONSTRAINT `products_updated_by_fkey` FOREIGN KEY (`u
 ALTER TABLE `oauth_accounts` ADD CONSTRAINT `oauth_accounts_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `email_verification_tokens` ADD CONSTRAINT `email_verification_tokens_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `email_verification_otps` ADD CONSTRAINT `email_verification_otps_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `user_roles` ADD CONSTRAINT `user_roles_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

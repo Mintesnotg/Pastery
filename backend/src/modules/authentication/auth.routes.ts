@@ -6,14 +6,14 @@ import {
   meController,
   resendVerificationController,
   updateMeController,
-  verifyEmailController,
+  verifyOtpController,
 } from "./auth.controller.js";
 
 export const authRouter = Router();
 
 authRouter.post("/login", loginController);
 authRouter.post("/google", googleAuthController);
-authRouter.get("/verify-email", verifyEmailController);
+authRouter.post("/verify-otp", verifyOtpController);
 authRouter.post("/resend-verification", resendVerificationController);
 authRouter.get("/me", meController);
 authRouter.put("/me", updateMeController);

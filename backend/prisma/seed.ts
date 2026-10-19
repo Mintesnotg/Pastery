@@ -14,7 +14,7 @@ async function main() {
     "user_roles",
     "permissions",
     "roles",
-    "email_verification_tokens",
+    "email_verification_otps",
     "oauth_accounts",
     "users",
     "messages",
