@@ -10,6 +10,7 @@ import {
   findBusinessAccountByUserId,
   findCafeRole,
   findUserRole,
+  incrementCreditBalance,
   listBusinessAccounts,
   updateBusinessAccount,
 } from "./businessAccount.repository.js";

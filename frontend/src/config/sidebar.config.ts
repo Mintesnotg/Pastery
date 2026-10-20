@@ -7,6 +7,8 @@ import {
   Image,
   LockKeyhole,
   Package,
+  RefreshCw,
+  Repeat,
   Settings,
   ShoppingBag,
   ShoppingCart,
@@ -16,6 +18,7 @@ import {
   User,
   UserCog,
   Users,
+  FolderOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -57,6 +60,12 @@ export const sidebarConfig: SidebarItem[] = [
         icon: Building2,
         permission: "view.profile",
       },
+      {
+        name: "Standing orders",
+        route: "/standing-orders",
+        icon: Repeat,
+        permission: "create.standing_order",
+      },
     ],
   },
   {
@@ -95,6 +104,12 @@ export const sidebarConfig: SidebarItem[] = [
         icon: Store,
         permission: "view.business_accounts",
       },
+      {
+        name: "Standing orders",
+        route: "/standing-orders-admin",
+        icon: RefreshCw,
+        permission: "manage.standing_orders",
+      },
     ],
   },
   {
@@ -130,7 +145,7 @@ export const sidebarConfig: SidebarItem[] = [
   },
   {
     name: "Others",
-    icon: Ellipsis,
+    icon: FolderOpen,
     permission: "view.others",
     children: [
       {

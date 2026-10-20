@@ -96,9 +96,10 @@ model Product {
   updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
   createdBy      String?         @map("created_by") @db.Char(36)
   updatedBy      String?         @map("updated_by") @db.Char(36)
-  category       ProductCategory @relation(fields: [categoryId], references: [id])
-  createdByUser  User?           @relation("ProductCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
-  updatedByUser  User?           @relation("ProductUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  category            ProductCategory     @relation(fields: [categoryId], references: [id])
+  createdByUser       User?               @relation("ProductCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser       User?               @relation("ProductUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  standingOrderItems  StandingOrderItem[]
 
   @@index([categoryId], map: "products_category_idx")
   @@index([active, isSpecial], map: "products_active_special_idx")
@@ -169,6 +170,7 @@ model User {
   productCategoriesCreated ProductCategory[]  @relation("ProductCategoryCreatedBy")
   productCategoriesUpdated ProductCategory[]  @relation("ProductCategoryUpdatedBy")
   businessAccount          BusinessAccount?
+  standingOrders           StandingOrder[]
 
   @@unique([email], map: "users_email_unique")
   @@map("users")
@@ -199,6 +201,7 @@ model BusinessAccount {
   updatedAt         DateTime               @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
   contactUser       User                   @relation(fields: [contactUserId], references: [id], onDelete: Restrict)
   orders            Order[]
+  standingOrders    StandingOrder[]
 
   @@index([approvalStatus], map: "business_accounts_approval_idx")
   @@index([creditTier], map: "business_accounts_tier_idx")
@@ -286,6 +289,7 @@ model Order {
   id                Int              @id @default(autoincrement())
   userId            String           @map("user_id") @db.Char(36)
   businessAccountId Int?             @map("business_account_id")
+  standingOrderId   Int?             @map("standing_order_id")
   customerName      String           @map("customer_name")
   email             String
   phone             String?
@@ -305,6 +309,7 @@ model Order {
   updatedAt         DateTime         @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
   user              User             @relation(fields: [userId], references: [id], onDelete: Restrict)
   businessAccount   BusinessAccount? @relation(fields: [businessAccountId], references: [id], onDelete: SetNull)
+  standingOrder     StandingOrder?   @relation(fields: [standingOrderId], references: [id], onDelete: SetNull)
   items             OrderItem[]
   paymentIntents    PaymentIntent[]
   payments          Payment[]
@@ -312,7 +317,45 @@ model Order {
   @@index([userId], map: "orders_user_idx")
   @@index([businessAccountId], map: "orders_business_account_idx")
   @@index([channel], map: "orders_channel_idx")
+  @@index([standingOrderId, pickupDate], map: "orders_standing_pickup_idx")
   @@map("orders")
+}
+
+model StandingOrder {
+  id                Int                 @id @default(autoincrement())
+  businessAccountId Int                 @map("business_account_id")
+  userId            String              @map("user_id") @db.Char(36)
+  /// ISO weekdays 1=Mon … 7=Sun
+  weekdays          Json
+  fulfillmentType   FulfillmentType     @default(pickup) @map("fulfillment_type")
+  deliveryAddress   String?             @map("delivery_address") @db.Text
+  preferredTime     String              @map("preferred_time") @db.VarChar(16)
+  notes             String?             @db.Text
+  active            Boolean             @default(true)
+  createdAt         DateTime            @default(now()) @map("created_at") @db.DateTime(6)
+  updatedAt         DateTime            @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
+  businessAccount   BusinessAccount     @relation(fields: [businessAccountId], references: [id], onDelete: Cascade)
+  user              User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items             StandingOrderItem[]
+  orders            Order[]
+
+  @@index([businessAccountId], map: "standing_orders_ba_idx")
+  @@index([userId], map: "standing_orders_user_idx")
+  @@index([active], map: "standing_orders_active_idx")
+  @@map("standing_orders")
+}
+
+model StandingOrderItem {
+  id              Int           @id @default(autoincrement())
+  standingOrderId Int           @map("standing_order_id")
+  productId       Int           @map("product_id")
+  quantity        Int
+  standingOrder   StandingOrder @relation(fields: [standingOrderId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([standingOrderId], map: "standing_order_items_so_idx")
+  @@index([productId], map: "standing_order_items_product_idx")
+  @@map("standing_order_items")
 }
 
 model OrderItem {

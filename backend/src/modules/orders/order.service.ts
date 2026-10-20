@@ -35,6 +35,7 @@ export type OrderInput = {
   channel?: "retail" | "wholesale";
   fulfillmentType?: "pickup" | "delivery";
   deliveryAddress?: string | null;
+  standingOrderId?: number | null;
 };
 
 type OrderItemRow = {
@@ -185,6 +186,7 @@ export async function placeOrder(input: OrderInput, userId: string) {
         paymentTerms,
         businessAccountId,
         deliveryAddress,
+        standingOrderId: input.standingOrderId ?? null,
       },
     });
 
