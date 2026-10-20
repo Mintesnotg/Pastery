@@ -36,6 +36,9 @@ Thumbs.db
 # Vercel
 .vercel/
 
+# Local uploads (business account docs, etc.)
+backend/uploads/
+
 # Testing / coverage
 coverage/
 

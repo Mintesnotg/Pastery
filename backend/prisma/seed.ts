@@ -10,6 +10,8 @@ async function main() {
     "payment_intents",
     "order_items",
     "orders",
+    "business_accounts",
+    "app_settings",
     "role_permissions",
     "user_roles",
     "permissions",
@@ -44,7 +46,8 @@ async function main() {
       data: {
         name: "Classic Sourdough",
         description: "Naturally leavened loaf with a caramelized crust and open crumb.",
-        price: "4.50",
+        retailPrice: "4.50",
+        wholesalePrice: "3.60",
         image:
           "https://images.pexels.com/photos/30890566/pexels-photo-30890566.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
         isSpecial: true,
@@ -55,7 +58,8 @@ async function main() {
       data: {
         name: "All-Butter Croissant",
         description: "Shattered layers of butter and pastry baked fresh each morning.",
-        price: "3.80",
+        retailPrice: "3.80",
+        wholesalePrice: "3.00",
         image:
           "https://images.pexels.com/photos/20002837/pexels-photo-20002837.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
         isSpecial: true,
@@ -66,7 +70,8 @@ async function main() {
       data: {
         name: "Signature Chocolate Cake",
         description: "Rich cocoa sponge with dark ganache and a soft crumb.",
-        price: "32.00",
+        retailPrice: "32.00",
+        wholesalePrice: "26.00",
         image:
           "https://images.pexels.com/photos/32916204/pexels-photo-32916204.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
         isSpecial: true,
@@ -77,7 +82,8 @@ async function main() {
       data: {
         name: "Sea Salt Chocolate Cookie",
         description: "Chewy chocolate cookie finished with flaky sea salt.",
-        price: "2.80",
+        retailPrice: "2.80",
+        wholesalePrice: "2.20",
         image:
           "https://images.pexels.com/photos/27355747/pexels-photo-27355747.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
         isSpecial: true,
@@ -88,7 +94,8 @@ async function main() {
       data: {
         name: "Victoria Sponge Slice",
         description: "Raspberry jam, vanilla buttercream.",
-        price: "4.20",
+        retailPrice: "4.20",
+        wholesalePrice: "3.40",
         image:
           "https://images.pexels.com/photos/31928755/pexels-photo-31928755.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
         isSpecial: false,
@@ -99,7 +106,8 @@ async function main() {
       data: {
         name: "Country Rye",
         description: "Hearty dark rye with toasted seeds and a moist crumb.",
-        price: "4.80",
+        retailPrice: "4.80",
+        wholesalePrice: "3.90",
         image:
           "https://images.pexels.com/photos/30350350/pexels-photo-30350350.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
         isSpecial: false,
@@ -110,7 +118,8 @@ async function main() {
       data: {
         name: "Pain au Chocolat",
         description: "Flaky pastry wrapped around rich dark chocolate.",
-        price: "3.40",
+        retailPrice: "3.40",
+        wholesalePrice: "2.70",
         image:
           "https://images.pexels.com/photos/3850387/pexels-photo-3850387.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
         isSpecial: false,
@@ -121,7 +130,8 @@ async function main() {
       data: {
         name: "Oat & Raisin Cookie",
         description: "Soft oat cookie with plump raisins and brown sugar.",
-        price: "2.50",
+        retailPrice: "2.50",
+        wholesalePrice: "2.00",
         image:
           "https://images.pexels.com/photos/12947814/pexels-photo-12947814.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
         isSpecial: false,
@@ -132,7 +142,8 @@ async function main() {
       data: {
         name: "Flat White",
         description: "Double ristretto with velvet-smooth microfoam.",
-        price: "3.40",
+        retailPrice: "3.40",
+        wholesalePrice: null,
         image:
           "https://images.pexels.com/photos/5427261/pexels-photo-5427261.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
         isSpecial: false,
@@ -143,7 +154,8 @@ async function main() {
       data: {
         name: "Caffè Latte",
         description: "Smooth espresso, steamed milk, and latte art.",
-        price: "3.60",
+        retailPrice: "3.60",
+        wholesalePrice: null,
         image:
           "https://images.pexels.com/photos/21370678/pexels-photo-21370678.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
         isSpecial: false,
@@ -154,7 +166,8 @@ async function main() {
       data: {
         name: "Berry Pavlova Slice",
         description: "Crisp meringue, whipped cream, and fresh berries.",
-        price: "5.20",
+        retailPrice: "5.20",
+        wholesalePrice: "4.20",
         image:
           "https://images.pexels.com/photos/31928753/pexels-photo-31928753.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
         isSpecial: false,
@@ -165,7 +178,8 @@ async function main() {
       data: {
         name: "Harvest Seed Loaf",
         description: "Sunflower, linseed, and pumpkin seeds for a crunchy crust.",
-        price: "5.20",
+        retailPrice: "5.20",
+        wholesalePrice: "4.20",
         image:
           "https://images.pexels.com/photos/30666735/pexels-photo-30666735.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
         isSpecial: false,
@@ -264,6 +278,14 @@ async function main() {
     },
   });
 
+  const cafeRole = await prisma.role.create({
+    data: {
+      key: "cafe",
+      name: "Cafe",
+      description: "Approved B2B cafe / wholesale account",
+    },
+  });
+
   const permissionKeys = [
     { key: "view.orders", name: "View Orders" },
     { key: "create.order", name: "Create Order" },
@@ -275,6 +297,8 @@ async function main() {
     { key: "view.permissions", name: "View Permissions" },
     { key: "view.account_management", name: "View Account Management" },
     { key: "view.content_management", name: "View Content Management" },
+    { key: "view.operational", name: "View Operational" },
+    { key: "view.others", name: "View Others" },
     { key: "view.banner", name: "View Banners" },
     { key: "create.banner", name: "Create Banner" },
     { key: "update.banner", name: "Update Banner" },
@@ -296,6 +320,18 @@ async function main() {
     { key: "create.permission", name: "Create Permission" },
     { key: "update.permission", name: "Update Permission" },
     { key: "delete.permission", name: "Delete Permission" },
+    // B2B / cafe (Phase 1)
+    { key: "view.business_account", name: "View Own Business Account" },
+    { key: "create.standing_order", name: "Create Standing Order" },
+    { key: "view.invoices", name: "View Invoices" },
+    { key: "view.business_accounts", name: "View Business Accounts" },
+    { key: "approve.business_account", name: "Approve Business Account" },
+    { key: "manage.credit", name: "Manage Credit" },
+    { key: "create.invoice", name: "Create Invoice" },
+    { key: "record.payment", name: "Record Invoice Payment" },
+    { key: "view.production", name: "View Production Board" },
+    { key: "manage.standing_orders", name: "Manage Standing Orders" },
+    { key: "manage.settings", name: "Manage App Settings" },
   ];
 
   await prisma.permission.createMany({ data: permissionKeys });
@@ -321,6 +357,24 @@ async function main() {
   await prisma.rolePermission.createMany({
     data: customerPermissions.map((permission) => ({
       roleId: customerRole.id,
+      permissionId: permission.id,
+    })),
+  });
+
+  const cafePermissionKeys = [
+    "create.order",
+    "view.profile",
+    "edit.profile",
+    "view.business_account",
+    "create.standing_order",
+    "view.invoices",
+  ] as const;
+  const cafePermissions = permissionRows.filter((p) =>
+    (cafePermissionKeys as readonly string[]).includes(p.key),
+  );
+  await prisma.rolePermission.createMany({
+    data: cafePermissions.map((permission) => ({
+      roleId: cafeRole.id,
       permissionId: permission.id,
     })),
   });
@@ -377,6 +431,14 @@ async function main() {
         message: "Do your sourdough loaves contain sesame seeds?",
         status: "new",
       },
+    ],
+  });
+
+  await prisma.appSetting.createMany({
+    data: [
+      { key: "order.timezone", value: "Europe/London" },
+      { key: "order.cutoff_time", value: "14:00" },
+      { key: "order.min_lead_days", value: "1" },
     ],
   });
 

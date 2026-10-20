@@ -17,6 +17,8 @@ import { productsRouter } from "./modules/products/product.routes.js";
 import { productCategoriesRouter } from "./modules/product-categories/productCategory.routes.js";
 import { testimonialsRouter } from "./modules/testimonials/testimonial.routes.js";
 import { bannersRouter } from "./modules/banners/banner.routes.js";
+import { businessAccountsRouter } from "./modules/business-accounts/businessAccount.routes.js";
+import { settingsRouter } from "./modules/settings/setting.routes.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 import "./shared/types/express.js";
 
@@ -40,6 +42,8 @@ app.use("/api/testimonials", testimonialsRouter);
 app.use("/api/banners", bannersRouter);
 app.use("/api/messages", messagesRouter);
 app.use("/api/orders", ordersRouter);
+app.use("/api/business-accounts", businessAccountsRouter);
+app.use("/api/settings", settingsRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/roles", rolesRouter);

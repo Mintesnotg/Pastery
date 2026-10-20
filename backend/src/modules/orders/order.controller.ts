@@ -5,9 +5,10 @@ import {
   changeOrderStatus,
   getOrderById,
   getOrdersWithItems,
+  markOrderPaid,
   placeOrder,
 } from "./order.service.js";
-import { orderSchema } from "./order.validator.js";
+import { markPaidSchema, orderSchema } from "./order.validator.js";
 
 export async function listOrdersController(req: Request, res: Response) {
   if (!req.auth?.userId) return sendError(res, 401, "Unauthenticated");
@@ -52,7 +53,8 @@ export async function createOrderController(req: Request, res: Response) {
     const order = await placeOrder(parsed.data, req.auth.userId);
     res.status(201).json(order);
   } catch (err) {
-    sendError(res, 500, "Failed to place order", (err as Error).message);
+    const status = (err as Error & { status?: number }).status ?? 500;
+    sendError(res, status, (err as Error).message || "Failed to place order");
   }
 }
 
@@ -68,6 +70,23 @@ export async function updateOrderController(req: Request, res: Response) {
   const updated = await changeOrderStatus(id, status);
   if (!updated) return sendError(res, 404, "Order not found");
   res.json({ success: true, order: updated });
+}
+
+export async function markPaidController(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return sendError(res, 400, "Invalid order ID");
+
+  const parsed = markPaidSchema.safeParse(req.body ?? {});
+  if (!parsed.success) return sendError(res, 400, "Invalid request body");
+
+  try {
+    const updated = await markOrderPaid(id, parsed.data.payment_reference);
+    if (!updated) return sendError(res, 404, "Order not found");
+    res.json({ success: true, order: updated });
+  } catch (err) {
+    const status = (err as Error & { status?: number }).status ?? 500;
+    sendError(res, status, (err as Error).message || "Failed to mark order paid");
+  }
 }
 
 export async function deleteOrderController(req: Request, res: Response) {

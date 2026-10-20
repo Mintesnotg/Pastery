@@ -44,6 +44,20 @@ export async function findProductImagesByIds(productIds: number[]) {
   return new Map(products.map((p) => [p.id, p.image]));
 }
 
+export async function findProductsByIds(productIds: number[]) {
+  if (productIds.length === 0) return [];
+  return prisma.product.findMany({
+    where: { id: { in: productIds }, active: true },
+    select: {
+      id: true,
+      name: true,
+      retailPrice: true,
+      wholesalePrice: true,
+      active: true,
+    },
+  });
+}
+
 export async function findLatestPaymentIntentByOrderId(orderId: number) {
   return prisma.paymentIntent.findFirst({
     where: { orderId },

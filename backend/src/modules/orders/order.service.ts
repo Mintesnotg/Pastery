@@ -1,10 +1,15 @@
+import { prisma } from "../../db/index.js";
 import {
-  createOrder,
-  createOrderItems,
+  assertCanPlaceWholesaleOrder,
+  assertWholesaleCreditCapacity,
+} from "../business-accounts/businessAccount.service.js";
+import { assertFulfillmentWindow } from "../settings/setting.service.js";
+import {
   deleteOrderById,
   findLatestPaymentIntentByOrderId,
   findOrderById,
   findProductImagesByIds,
+  findProductsByIds,
   listOrderItemsByOrderId,
   listOrderItemsByOrderIds,
   listOrders,
@@ -12,9 +17,9 @@ import {
 } from "./order.repository.js";
 
 export type OrderItemInput = {
-  id?: number;
-  name: string;
-  price: number;
+  id: number;
+  name?: string;
+  price?: number;
   qty: number;
 };
 
@@ -26,7 +31,10 @@ export type OrderInput = {
   pickupTime: string;
   notes?: string | null;
   items: OrderItemInput[];
-  total: number;
+  total?: number;
+  channel?: "retail" | "wholesale";
+  fulfillmentType?: "pickup" | "delivery";
+  deliveryAddress?: string | null;
 };
 
 type OrderItemRow = {
@@ -39,6 +47,12 @@ type OrderItemRow = {
   lineTotal: unknown;
   createdAt: Date;
 };
+
+function httpError(status: number, message: string): Error & { status: number } {
+  const err = new Error(message) as Error & { status: number };
+  err.status = status;
+  return err;
+}
 
 async function enrichItemsWithProductImages(items: OrderItemRow[]) {
   const productIds = [
@@ -91,27 +105,130 @@ export async function getOrderById(id: number) {
 }
 
 export async function placeOrder(input: OrderInput, userId: string) {
-  const order = await createOrder({
-    userId,
-    customerName: input.customerName,
-    email: input.email,
-    phone: input.phone || null,
-    pickupDate: input.pickupDate,
-    pickupTime: input.pickupTime,
-    notes: input.notes || null,
-    total: input.total.toFixed(2),
-  });
-  await createOrderItems(
-    input.items.map((item) => ({
-      orderId: order.id as number,
-      productId: item.id ?? null,
-      productName: item.name,
-      unitPrice: item.price.toFixed(2),
+  await assertFulfillmentWindow(input.pickupDate);
+
+  const channel = input.channel === "wholesale" ? "wholesale" : "retail";
+  const fulfillmentType = input.fulfillmentType === "delivery" ? "delivery" : "pickup";
+  const deliveryAddress =
+    fulfillmentType === "delivery" ? (input.deliveryAddress?.trim() || null) : null;
+
+  if (fulfillmentType === "delivery" && !deliveryAddress) {
+    throw httpError(400, "deliveryAddress is required for delivery");
+  }
+
+  let businessAccountId: number | null = null;
+  let paymentTerms: "prepaid" | "credit" = "prepaid";
+  let accountForCredit: Awaited<ReturnType<typeof assertCanPlaceWholesaleOrder>> | null =
+    null;
+
+  if (channel === "wholesale") {
+    accountForCredit = await assertCanPlaceWholesaleOrder(userId);
+    businessAccountId = accountForCredit.id;
+    paymentTerms = accountForCredit.creditTier >= 1 ? "credit" : "prepaid";
+  }
+
+  const productIds = [...new Set(input.items.map((item) => item.id))];
+  const products = await findProductsByIds(productIds);
+  const byId = new Map(products.map((p) => [p.id, p]));
+
+  if (products.length !== productIds.length) {
+    throw httpError(400, "One or more products were not found or are inactive");
+  }
+
+  const pricedItems = input.items.map((item) => {
+    const product = byId.get(item.id)!;
+    let unitPrice: number;
+    if (channel === "wholesale") {
+      if (product.wholesalePrice == null) {
+        throw httpError(400, `Product "${product.name}" has no wholesale price`);
+      }
+      unitPrice = Number(product.wholesalePrice);
+    } else {
+      unitPrice = Number(product.retailPrice);
+    }
+    const lineTotal = unitPrice * item.qty;
+    return {
+      productId: product.id,
+      productName: product.name,
+      unitPrice,
       quantity: item.qty,
-      lineTotal: (item.price * item.qty).toFixed(2),
-    })),
-  );
+      lineTotal,
+    };
+  });
+
+  const orderTotal = pricedItems.reduce((sum, row) => sum + row.lineTotal, 0);
+
+  if (channel === "wholesale" && accountForCredit) {
+    await assertWholesaleCreditCapacity(accountForCredit, orderTotal);
+  }
+
+  const order = await prisma.$transaction(async (tx) => {
+    if (channel === "wholesale" && accountForCredit && paymentTerms === "credit") {
+      await tx.businessAccount.update({
+        where: { id: accountForCredit.id },
+        data: { creditBalance: { increment: orderTotal } },
+      });
+    }
+
+    const created = await tx.order.create({
+      data: {
+        userId,
+        customerName: input.customerName,
+        email: input.email,
+        phone: input.phone || null,
+        pickupDate: input.pickupDate,
+        pickupTime: input.pickupTime,
+        notes: input.notes || null,
+        total: orderTotal.toFixed(2),
+        channel,
+        fulfillmentType,
+        paymentTerms,
+        businessAccountId,
+        deliveryAddress,
+      },
+    });
+
+    await tx.orderItem.createMany({
+      data: pricedItems.map((item) => ({
+        orderId: created.id,
+        productId: item.productId,
+        productName: item.productName,
+        unitPrice: item.unitPrice.toFixed(2),
+        quantity: item.quantity,
+        lineTotal: item.lineTotal.toFixed(2),
+      })),
+    });
+
+    return created;
+  });
+
   return { success: true, order };
+}
+
+export async function markOrderPaid(
+  id: number,
+  paymentReference?: string | null,
+) {
+  const order = await findOrderById(id);
+  if (!order) return null;
+
+  if (order.paymentTerms !== "prepaid") {
+    throw httpError(400, "Only prepaid orders can be marked paid");
+  }
+  if (order.prepaidPaidAt) {
+    throw httpError(400, "Order is already marked paid");
+  }
+  if (order.status === "cancelled") {
+    throw httpError(400, "Cancelled orders cannot be marked paid");
+  }
+
+  return prisma.order.update({
+    where: { id },
+    data: {
+      prepaidPaidAt: new Date(),
+      paymentReference: paymentReference?.trim() || null,
+    },
+  });
 }
 
 export async function changeOrderStatus(id: number, status: string) {

@@ -39,6 +39,11 @@ type OrderType = {
   notes: string | null;
   total: string;
   status: string;
+  channel?: "retail" | "wholesale";
+  fulfillmentType?: "pickup" | "delivery";
+  deliveryAddress?: string | null;
+  paymentTerms?: "prepaid" | "credit";
+  prepaidPaidAt?: string | null;
   createdAt: string;
   items?: OrderItemInfo[];
 };
@@ -59,6 +64,7 @@ export default function AdminPage() {
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [activeTab, setActiveTab] = useState<"orders" | "messages">("orders");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [processingId, setProcessingId] = useState<number | null>(null);
 
@@ -145,6 +151,40 @@ export default function AdminPage() {
     }
   };
 
+  const handleMarkPaid = async (orderId: number) => {
+    const ref = window.prompt("Payment reference (optional)") ?? undefined;
+    setProcessingId(orderId);
+    try {
+      const res = await fetch(
+        apiUrl(`/api/orders/${orderId}/mark-paid`),
+        withPermission("record.payment", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            payment_reference: ref?.trim() || null,
+          }),
+        }),
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === orderId
+              ? {
+                  ...o,
+                  prepaidPaidAt: data.order?.prepaidPaidAt ?? new Date().toISOString(),
+                  paymentReference: data.order?.paymentReference ?? ref?.trim() ?? null,
+                }
+              : o,
+          ),
+        );
+      }
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const handleDeleteMessage = async (msgId: number) => {
     if (!confirm("Are you sure you want to delete this message?")) return;
     const res = await fetch(
@@ -166,13 +206,14 @@ export default function AdminPage() {
     () =>
       orders.filter((o) => {
         const matchesStatus = statusFilter === "all" || o.status === statusFilter;
+        const matchesDate = !dateFilter || o.pickupDate === dateFilter;
         const matchesSearch =
           o.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
           o.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (o.phone && o.phone.includes(searchQuery));
-        return matchesStatus && matchesSearch;
+        return matchesStatus && matchesDate && matchesSearch;
       }),
-    [orders, searchQuery, statusFilter],
+    [orders, searchQuery, statusFilter, dateFilter],
   );
 
   const formatOrderItems = (items?: OrderItemInfo[]) =>
@@ -281,6 +322,13 @@ export default function AdminPage() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-crust/50" size={16} />
               <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search orders..." className="w-full rounded-xl border border-crust/10 bg-white pl-9 pr-4 py-2 text-sm outline-none focus:border-crust" />
             </div>
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="rounded-xl border border-crust/10 bg-white px-3 py-2 text-sm outline-none focus:border-crust"
+              title="Filter by pickup/delivery date"
+            />
           </div>
 
           {loadingOrders ? (
@@ -293,9 +341,24 @@ export default function AdminPage() {
               {filteredOrders.map((order) => (
                 <div key={order.id} className="overflow-hidden rounded-2xl border border-crust/15 bg-white shadow-sm transition hover:shadow-md">
                   <div className="flex flex-wrap items-center justify-between gap-4 border-b border-crust/10 bg-cream/40 px-5 py-4 sm:px-6">
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-display text-lg font-bold text-crust-deep">#{order.id}</span>
                       <span className="rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-slate-100 text-slate-800">{order.status}</span>
+                      {order.channel && (
+                        <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-amber-900">
+                          {order.channel}
+                        </span>
+                      )}
+                      {order.fulfillmentType && (
+                        <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-sky-900">
+                          {order.fulfillmentType}
+                        </span>
+                      )}
+                      {order.paymentTerms === "prepaid" && !order.prepaidPaidAt && order.status !== "cancelled" && (
+                        <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-rose-800">
+                          unpaid
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 text-xs text-crust/60">
                       <Calendar size={13} />
@@ -311,8 +374,16 @@ export default function AdminPage() {
                       {order.phone && <p className="mt-1 flex items-center gap-1.5 text-sm text-crust-deep/70"><Phone size={13} /> {order.phone}</p>}
                       <div className="mt-3 inline-flex items-center gap-2 rounded-xl bg-warm px-3 py-1.5 text-xs font-bold text-crust-dark">
                         <Clock size={13} />
-                        Pickup: {order.pickupDate} @ {order.pickupTime}
+                        {order.fulfillmentType === "delivery" ? "Delivery" : "Pickup"}:{" "}
+                        {order.pickupDate} @ {order.pickupTime}
                       </div>
+                      {order.fulfillmentType === "delivery" && order.deliveryAddress && (
+                        <p className="mt-2 text-xs text-crust-deep/70">
+                          {order.deliveryAddress.length > 64
+                            ? `${order.deliveryAddress.slice(0, 63)}…`
+                            : order.deliveryAddress}
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -334,6 +405,15 @@ export default function AdminPage() {
                           {order.status !== "preparing" && order.status !== "ready" && order.status !== "completed" && <button disabled={processingId === order.id} onClick={() => void handleUpdateStatus(order.id, "preparing")} className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white">Start Prep</button>}
                           {order.status !== "ready" && order.status !== "completed" && <button disabled={processingId === order.id} onClick={() => void handleUpdateStatus(order.id, "ready")} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white">Mark Ready</button>}
                           {order.status !== "completed" && <button disabled={processingId === order.id} onClick={() => void handleUpdateStatus(order.id, "completed")} className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-bold text-white">Collect & Complete</button>}
+                          {order.paymentTerms === "prepaid" && !order.prepaidPaidAt && order.status !== "cancelled" && (
+                            <button
+                              disabled={processingId === order.id}
+                              onClick={() => void handleMarkPaid(order.id)}
+                              className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white"
+                            >
+                              Mark paid
+                            </button>
+                          )}
                         </div>
                       </div>
                       <button disabled={processingId === order.id} onClick={() => void handleDeleteOrder(order.id)} className="mt-4 flex items-center gap-1.5 self-start text-xs font-semibold text-red-600 hover:text-red-800 transition sm:self-auto">

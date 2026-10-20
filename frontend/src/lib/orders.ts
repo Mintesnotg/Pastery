@@ -29,11 +29,24 @@ export type Order = {
   total: string | number;
   currency?: string;
   status: string;
+  channel?: "retail" | "wholesale";
+  fulfillmentType?: "pickup" | "delivery";
+  deliveryAddress?: string | null;
+  paymentTerms?: "prepaid" | "credit";
+  prepaidPaidAt?: string | null;
+  paymentReference?: string | null;
   createdAt: string;
   updatedAt?: string;
   items: OrderItem[];
   payment?: OrderPayment | null;
 };
+
+export function truncateAddress(address: string | null | undefined, max = 48) {
+  if (!address) return "";
+  const trimmed = address.trim();
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, max - 1)}…`;
+}
 
 export type OrderStatusGroup = "pending" | "delivered" | "cancelled";
 

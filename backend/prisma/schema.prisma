@@ -36,6 +36,36 @@ enum PaymentStatus {
   @@map("payment_status")
 }
 
+enum BusinessApprovalStatus {
+  pending
+  approved
+  rejected
+
+  @@map("business_approval_status")
+}
+
+enum OrderChannel {
+  retail
+  wholesale
+  custom
+
+  @@map("order_channel")
+}
+
+enum FulfillmentType {
+  pickup
+  delivery
+
+  @@map("fulfillment_type")
+}
+
+enum PaymentTerms {
+  prepaid
+  credit
+
+  @@map("payment_terms")
+}
+
 model ProductCategory {
   id          Int       @id @default(autoincrement())
   name        String
@@ -53,21 +83,22 @@ model ProductCategory {
 }
 
 model Product {
-  id          Int             @id @default(autoincrement())
-  name        String
-  description String          @db.Text
-  price       Decimal         @db.Decimal(10, 2)
-  image       String          @db.Text
-  isSpecial   Boolean         @default(false) @map("is_special")
-  categoryId  Int             @map("category_id")
-  active      Boolean         @default(true)
-  createdAt   DateTime        @default(now()) @map("created_at") @db.DateTime(6)
-  updatedAt   DateTime        @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
-  createdBy   String?         @map("created_by") @db.Char(36)
-  updatedBy   String?         @map("updated_by") @db.Char(36)
-  category    ProductCategory @relation(fields: [categoryId], references: [id])
-  createdByUser User?         @relation("ProductCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
-  updatedByUser User?         @relation("ProductUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  id             Int             @id @default(autoincrement())
+  name           String
+  description    String          @db.Text
+  retailPrice    Decimal         @map("retail_price") @db.Decimal(10, 2)
+  wholesalePrice Decimal?        @map("wholesale_price") @db.Decimal(10, 2)
+  image          String          @db.Text
+  isSpecial      Boolean         @default(false) @map("is_special")
+  categoryId     Int             @map("category_id")
+  active         Boolean         @default(true)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.DateTime(6)
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
+  createdBy      String?         @map("created_by") @db.Char(36)
+  updatedBy      String?         @map("updated_by") @db.Char(36)
+  category       ProductCategory @relation(fields: [categoryId], references: [id])
+  createdByUser  User?           @relation("ProductCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser  User?           @relation("ProductUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
 
   @@index([categoryId], map: "products_category_idx")
   @@index([active, isSpecial], map: "products_active_special_idx")
@@ -133,13 +164,45 @@ model User {
   orders           Order[]
   oauthAccounts    OAuthAccount[]
   emailOtps        EmailVerificationOtp[]
-  productsCreated         Product[]         @relation("ProductCreatedBy")
-  productsUpdated         Product[]         @relation("ProductUpdatedBy")
-  productCategoriesCreated ProductCategory[] @relation("ProductCategoryCreatedBy")
-  productCategoriesUpdated ProductCategory[] @relation("ProductCategoryUpdatedBy")
+  productsCreated          Product[]          @relation("ProductCreatedBy")
+  productsUpdated          Product[]          @relation("ProductUpdatedBy")
+  productCategoriesCreated ProductCategory[]  @relation("ProductCategoryCreatedBy")
+  productCategoriesUpdated ProductCategory[]  @relation("ProductCategoryUpdatedBy")
+  businessAccount          BusinessAccount?
 
   @@unique([email], map: "users_email_unique")
   @@map("users")
+}
+
+model BusinessAccount {
+  id                Int                    @id @default(autoincrement())
+  contactUserId     String                 @unique @map("contact_user_id") @db.Char(36)
+  businessName      String                 @map("business_name")
+  addressLine1      String                 @map("address_line1")
+  addressLine2      String?                @map("address_line2")
+  city              String
+  postcode          String
+  country           String                 @default("GB")
+  phone             String?
+  businessIdDocPath String?                @map("business_id_doc_path") @db.Text
+  licenseDocPath    String?                @map("license_doc_path") @db.Text
+  approvalStatus    BusinessApprovalStatus @default(pending) @map("approval_status")
+  rejectionReason   String?                @map("rejection_reason") @db.Text
+  /// 0 = prepaid, 1 = net7, 2 = net14
+  creditTier        Int                    @default(0) @map("credit_tier") @db.TinyInt
+  creditLimit       Decimal                @default(0) @map("credit_limit") @db.Decimal(10, 2)
+  creditBalance     Decimal                @default(0) @map("credit_balance") @db.Decimal(10, 2)
+  overduePaused     Boolean                @default(false) @map("overdue_paused")
+  notes             String?                @db.Text
+  approvedAt        DateTime?              @map("approved_at") @db.DateTime(6)
+  createdAt         DateTime               @default(now()) @map("created_at") @db.DateTime(6)
+  updatedAt         DateTime               @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
+  contactUser       User                   @relation(fields: [contactUserId], references: [id], onDelete: Restrict)
+  orders            Order[]
+
+  @@index([approvalStatus], map: "business_accounts_approval_idx")
+  @@index([creditTier], map: "business_accounts_tier_idx")
+  @@map("business_accounts")
 }
 
 model OAuthAccount {
@@ -220,25 +283,35 @@ model RolePermission {
 
 
 model Order {
-  id             Int             @id @default(autoincrement())
-  userId         String          @map("user_id") @db.Char(36)
-  customerName   String          @map("customer_name")
-  email          String
-  phone          String?
-  pickupDate     String          @map("pickup_date")
-  pickupTime     String          @map("pickup_time")
-  notes          String?         @db.Text
-  total          Decimal         @db.Decimal(10, 2)
-  currency       String          @default("GBP")
-  status         OrderStatus     @default(pending)
-  createdAt      DateTime        @default(now()) @map("created_at") @db.DateTime(6)
-  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
-  user           User            @relation(fields: [userId], references: [id], onDelete: Restrict)
-  items          OrderItem[]
-  paymentIntents PaymentIntent[]
-  payments       Payment[]
+  id                Int              @id @default(autoincrement())
+  userId            String           @map("user_id") @db.Char(36)
+  businessAccountId Int?             @map("business_account_id")
+  customerName      String           @map("customer_name")
+  email             String
+  phone             String?
+  channel           OrderChannel     @default(retail)
+  fulfillmentType   FulfillmentType  @default(pickup) @map("fulfillment_type")
+  paymentTerms      PaymentTerms     @default(prepaid) @map("payment_terms")
+  pickupDate        String           @map("pickup_date")
+  pickupTime        String           @map("pickup_time")
+  deliveryAddress   String?          @map("delivery_address") @db.Text
+  notes             String?          @db.Text
+  total             Decimal          @db.Decimal(10, 2)
+  currency          String           @default("GBP")
+  status            OrderStatus      @default(pending)
+  prepaidPaidAt     DateTime?        @map("prepaid_paid_at") @db.DateTime(6)
+  paymentReference  String?          @map("payment_reference") @db.VarChar(191)
+  createdAt         DateTime         @default(now()) @map("created_at") @db.DateTime(6)
+  updatedAt         DateTime         @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
+  user              User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  businessAccount   BusinessAccount? @relation(fields: [businessAccountId], references: [id], onDelete: SetNull)
+  items             OrderItem[]
+  paymentIntents    PaymentIntent[]
+  payments          Payment[]
 
   @@index([userId], map: "orders_user_idx")
+  @@index([businessAccountId], map: "orders_business_account_idx")
+  @@index([channel], map: "orders_channel_idx")
   @@map("orders")
 }
 
@@ -303,4 +376,12 @@ model PaymentEvent {
   payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
 
   @@map("payment_events")
+}
+
+model AppSetting {
+  key       String   @id @db.VarChar(64)
+  value     String   @db.VarChar(512)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
+
+  @@map("app_settings")
 }

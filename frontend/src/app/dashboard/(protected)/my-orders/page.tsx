@@ -17,6 +17,7 @@ import {
   formatOrderDateTime,
   orderNumber,
   toStatusGroup,
+  truncateAddress,
   type Order,
   type OrderStatusGroup,
 } from "@/lib/orders";
@@ -41,16 +42,26 @@ function itemsSummary(order: Order) {
 
 function contextualLine(order: Order) {
   const group = toStatusGroup(order.status);
+  const isDelivery = order.fulfillmentType === "delivery";
   if (group === "delivered") {
     return {
       Icon: MapPin,
-      text: "Collected at House of Bread",
+      text: isDelivery ? "Delivered" : "Collected at House of Bread",
     };
   }
   if (group === "cancelled") {
     return {
       Icon: RefreshCw,
       text: "Order cancelled",
+    };
+  }
+  if (isDelivery) {
+    const addr = truncateAddress(order.deliveryAddress);
+    return {
+      Icon: MapPin,
+      text: addr
+        ? `Delivery ${order.pickupDate} (${order.pickupTime}) · ${addr}`
+        : `Delivery ${order.pickupDate} (${order.pickupTime})`,
     };
   }
   return {
@@ -186,6 +197,16 @@ export default function MyOrdersPage() {
                         <span className="rounded-full bg-[#FDEBDD] px-2.5 py-0.5 text-xs font-semibold text-[#734F32]">
                           {itemCountLabel(itemCount)}
                         </span>
+                        {order.channel === "wholesale" && (
+                          <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
+                            Wholesale
+                          </span>
+                        )}
+                        {order.fulfillmentType && (
+                          <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold capitalize text-sky-900">
+                            {order.fulfillmentType}
+                          </span>
+                        )}
                       </div>
                       <p className="mt-1 text-sm text-[#9A8573]">
                         {formatOrderDateTime(order.createdAt)}
