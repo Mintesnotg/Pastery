@@ -11,7 +11,7 @@ export async function login(email: string, password: string) {
   if (!user || !user.passwordHash || !user.passwordSalt) {
     return null;
   }
-  if (!verifyPassword(password, user.passwordSalt, user.passwordHash)) {
+  if (!(await verifyPassword(password, user.passwordSalt, user.passwordHash))) {
     return null;
   }
   if (!user.emailVerifiedAt) {

@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { RecordStatus } from "../../shared/db/enums.js";
+import { invalidatePermissionCache } from "../permissions/permission.service.js";
 import {
   countActiveRoles,
   createRoleWithPermissions,
@@ -54,7 +55,9 @@ export async function createNewRole(
   if (existing) return null;
   const { permissionIds = [], ...roleData } = input;
   if (!(await checkPermissionIdsExist(permissionIds))) return { invalidPermissionIds: true as const };
-  return createRoleWithPermissions({ ...roleData, status: RecordStatus.ACTIVE }, permissionIds);
+  const created = await createRoleWithPermissions({ ...roleData, status: RecordStatus.ACTIVE }, permissionIds);
+  invalidatePermissionCache();
+  return created;
 }
 
 export async function updateRole(
@@ -65,9 +68,13 @@ export async function updateRole(
   if (permissionIds !== undefined && !(await checkPermissionIdsExist(permissionIds))) {
     return { invalidPermissionIds: true as const };
   }
-  return updateRoleWithPermissions(id, roleData, permissionIds);
+  const updated = await updateRoleWithPermissions(id, roleData, permissionIds);
+  invalidatePermissionCache();
+  return updated;
 }
 
 export async function deleteRole(id: number) {
-  return deactivateRoleById(id);
+  const deleted = await deactivateRoleById(id);
+  invalidatePermissionCache();
+  return deleted;
 }

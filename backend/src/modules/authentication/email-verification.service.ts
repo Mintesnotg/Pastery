@@ -50,12 +50,24 @@ export async function consumeEmailVerificationToken(rawToken: string) {
   return { userId: row.userId };
 }
 
+const RESEND_COOLDOWN_MS = 60_000;
+const RESEND_PRUNE_THRESHOLD = 1_000;
 const resendCooldown = new Map<string, number>();
+
+// Keep the in-memory throttle bounded on a long-running process.
+function pruneExpiredCooldowns(now: number) {
+  if (resendCooldown.size < RESEND_PRUNE_THRESHOLD) return;
+  for (const [key, last] of resendCooldown) {
+    if (now - last >= RESEND_COOLDOWN_MS) resendCooldown.delete(key);
+  }
+}
 
 export function canResendVerification(email: string) {
   const key = email.trim().toLowerCase();
+  const now = Date.now();
+  pruneExpiredCooldowns(now);
   const last = resendCooldown.get(key) ?? 0;
-  if (Date.now() - last < 60_000) return false;
-  resendCooldown.set(key, Date.now());
+  if (now - last < RESEND_COOLDOWN_MS) return false;
+  resendCooldown.set(key, now);
   return true;
 }

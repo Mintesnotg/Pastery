@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = "postgresql://postgres:postgres@127.0.0.1:5432/house_of_bread_prod"
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 enum RecordStatus {
@@ -37,37 +37,37 @@ enum PaymentStatus {
 }
 
 model ProductCategory {
-  id          Int       @id @default(autoincrement())
-  name        String
-  description String?
-  active      Boolean   @default(true)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  createdBy   String?   @map("created_by") @db.Uuid
-  updatedBy   String?   @map("updated_by") @db.Uuid
-  products    Product[]
-  createdByUser User?   @relation("ProductCategoryCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
-  updatedByUser User?   @relation("ProductCategoryUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  id            Int       @id @default(autoincrement())
+  name          String
+  description   String?   @db.Text
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+  createdBy     String?   @map("created_by") @db.Char(36)
+  updatedBy     String?   @map("updated_by") @db.Char(36)
+  products      Product[]
+  createdByUser User?     @relation("ProductCategoryCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User?     @relation("ProductCategoryUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
 
   @@map("product_categories")
 }
 
 model Product {
-  id          Int             @id @default(autoincrement())
-  name        String
-  description String
-  price       Decimal         @db.Decimal(10, 2)
-  image       String
-  isSpecial   Boolean         @default(false) @map("is_special")
-  categoryId  Int             @map("category_id")
-  active      Boolean         @default(true)
-  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  createdBy   String?         @map("created_by") @db.Uuid
-  updatedBy   String?         @map("updated_by") @db.Uuid
-  category    ProductCategory @relation(fields: [categoryId], references: [id])
-  createdByUser User?         @relation("ProductCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
-  updatedByUser User?         @relation("ProductUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  id            Int             @id @default(autoincrement())
+  name          String
+  description   String          @db.Text
+  price         Decimal         @db.Decimal(10, 2)
+  image         String          @db.Text
+  isSpecial     Boolean         @default(false) @map("is_special")
+  categoryId    Int             @map("category_id")
+  active        Boolean         @default(true)
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @default(now()) @updatedAt @map("updated_at")
+  createdBy     String?         @map("created_by") @db.Char(36)
+  updatedBy     String?         @map("updated_by") @db.Char(36)
+  category      ProductCategory @relation(fields: [categoryId], references: [id])
+  createdByUser User?           @relation("ProductCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User?           @relation("ProductUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
 
   @@index([categoryId], map: "products_category_idx")
   @@index([active, isSpecial], map: "products_active_special_idx")
@@ -78,10 +78,10 @@ model Testimonial {
   id        Int      @id @default(autoincrement())
   name      String
   role      String?
-  content   String
+  content   String   @db.Text
   rating    Int      @default(5)
   active    Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("testimonials")
 }
@@ -90,18 +90,18 @@ model Banner {
   id                Int      @id @default(autoincrement())
   title             String
   altText           String   @map("alt_text")
-  imageUrl          String   @map("image_url")
+  imageUrl          String   @map("image_url") @db.Text
   ctaLabel          String   @map("cta_label")
   ctaLink           String   @map("cta_link")
   overlayHeading    String   @map("overlay_heading")
   overlaySubheading String   @map("overlay_subheading")
   active            Boolean  @default(true)
   sortOrder         Int      @default(0) @map("sort_order")
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@index([active, sortOrder], map: "banners_active_sort_idx")
-  @@map("banners") 
+  @@map("banners")
 }
 
 model Message {
@@ -109,45 +109,45 @@ model Message {
   name      String
   email     String
   subject   String
-  message   String
+  message   String   @db.Text
   status    String   @default("new")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("messages")
 }
 
 model User {
-  id               String                   @id @default(uuid()) @db.Uuid
-  email            String
-  passwordHash     String?                  @map("password_hash")
-  passwordSalt     String?                  @map("password_salt")
-  firstName        String                   @default("") @map("first_name")
-  lastName         String                   @default("") @map("last_name")
-  fullName         String                   @map("full_name")
-  active           Boolean                  @default(true)
-  emailVerifiedAt  DateTime?                @map("email_verified_at") @db.Timestamptz(6)
-  lastLoginAt      DateTime?                @map("last_login_at") @db.Timestamptz(6)
-  createdAt        DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  userRoles        UserRole[]
-  orders           Order[]
-  oauthAccounts    OAuthAccount[]
-  emailTokens      EmailVerificationToken[]
-  productsCreated         Product[]         @relation("ProductCreatedBy")
-  productsUpdated         Product[]         @relation("ProductUpdatedBy")
-  productCategoriesCreated ProductCategory[] @relation("ProductCategoryCreatedBy")
-  productCategoriesUpdated ProductCategory[] @relation("ProductCategoryUpdatedBy")
+  id                       String                   @id @default(uuid()) @db.Char(36)
+  email                    String
+  passwordHash             String?                  @map("password_hash")
+  passwordSalt             String?                  @map("password_salt")
+  firstName                String                   @default("") @map("first_name")
+  lastName                 String                   @default("") @map("last_name")
+  fullName                 String                   @map("full_name")
+  active                   Boolean                  @default(true)
+  emailVerifiedAt          DateTime?                @map("email_verified_at")
+  lastLoginAt              DateTime?                @map("last_login_at")
+  createdAt                DateTime                 @default(now()) @map("created_at")
+  updatedAt                DateTime                 @default(now()) @updatedAt @map("updated_at")
+  userRoles                UserRole[]
+  orders                   Order[]
+  oauthAccounts            OAuthAccount[]
+  emailTokens              EmailVerificationToken[]
+  productsCreated          Product[]                @relation("ProductCreatedBy")
+  productsUpdated          Product[]                @relation("ProductUpdatedBy")
+  productCategoriesCreated ProductCategory[]        @relation("ProductCategoryCreatedBy")
+  productCategoriesUpdated ProductCategory[]        @relation("ProductCategoryUpdatedBy")
 
   @@unique([email], map: "users_email_unique")
   @@map("users")
 }
 
 model OAuthAccount {
-  id                String   @id @default(uuid()) @db.Uuid
-  userId            String   @map("user_id") @db.Uuid
+  id                String   @id @default(uuid()) @db.Char(36)
+  userId            String   @map("user_id") @db.Char(36)
   provider          String
   providerAccountId String   @map("provider_account_id")
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt         DateTime @default(now()) @map("created_at")
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId], map: "oauth_accounts_provider_account_unique")
@@ -156,11 +156,11 @@ model OAuthAccount {
 }
 
 model EmailVerificationToken {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
+  id        String   @id @default(uuid()) @db.Char(36)
+  userId    String   @map("user_id") @db.Char(36)
   tokenHash String   @map("token_hash")
-  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([tokenHash], map: "email_verification_tokens_hash_unique")
@@ -172,9 +172,9 @@ model Role {
   id              Int              @id @default(autoincrement())
   key             String
   name            String
-  description     String?
+  description     String?          @db.Text
   status          RecordStatus     @default(ACTIVE)
-  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt       DateTime         @default(now()) @map("created_at")
   userRoles       UserRole[]
   rolePermissions RolePermission[]
 
@@ -186,9 +186,9 @@ model Permission {
   id              Int              @id @default(autoincrement())
   key             String
   name            String
-  description     String?
+  description     String?          @db.Text
   status          RecordStatus     @default(ACTIVE)
-  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt       DateTime         @default(now()) @map("created_at")
   rolePermissions RolePermission[]
 
   @@unique([key], map: "permissions_key_unique")
@@ -196,41 +196,41 @@ model Permission {
 }
 
 model UserRole {
-  userId    String   @map("user_id") @db.Uuid
+  userId    String   @map("user_id") @db.Char(36)
   roleId    Int      @map("role_id")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
-  @@id([userId, roleId], map: "user_roles_user_role_unique")
+  @@id([userId, roleId])
   @@map("user_roles")
 }
 
 model RolePermission {
-  roleId       Int      @map("role_id")
-  permissionId Int      @map("permission_id")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  role         Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId       Int        @map("role_id")
+  permissionId Int        @map("permission_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
-  @@id([roleId, permissionId], map: "role_permissions_role_permission_unique")
+  @@id([roleId, permissionId])
   @@map("role_permissions")
 }
 
 model Order {
   id             Int             @id @default(autoincrement())
-  userId         String          @map("user_id") @db.Uuid
+  userId         String          @map("user_id") @db.Char(36)
   customerName   String          @map("customer_name")
   email          String
   phone          String?
   pickupDate     String          @map("pickup_date")
   pickupTime     String          @map("pickup_time")
-  notes          String?
+  notes          String?         @db.Text
   total          Decimal         @db.Decimal(10, 2)
   currency       String          @default("GBP")
   status         OrderStatus     @default(pending)
-  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at")
   user           User            @relation(fields: [userId], references: [id], onDelete: Restrict)
   items          OrderItem[]
   paymentIntents PaymentIntent[]
@@ -248,7 +248,7 @@ model OrderItem {
   unitPrice   Decimal  @map("unit_price") @db.Decimal(10, 2)
   quantity    Int
   lineTotal   Decimal  @map("line_total") @db.Decimal(10, 2)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @map("created_at")
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId], map: "order_items_order_idx")
@@ -256,7 +256,7 @@ model OrderItem {
 }
 
 model PaymentIntent {
-  id               String        @id @default(uuid()) @db.Uuid
+  id               String        @id @default(uuid()) @db.Char(36)
   orderId          Int           @map("order_id")
   provider         String
   providerIntentId String?       @map("provider_intent_id")
@@ -264,8 +264,8 @@ model PaymentIntent {
   amount           Decimal       @db.Decimal(10, 2)
   currency         String        @default("GBP")
   metadata         Json          @default("{}")
-  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @default(now()) @updatedAt @map("updated_at")
   order            Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
   payments         Payment[]
 
@@ -273,17 +273,17 @@ model PaymentIntent {
 }
 
 model Payment {
-  id                String         @id @default(uuid()) @db.Uuid
+  id                String         @id @default(uuid()) @db.Char(36)
   orderId           Int            @map("order_id")
-  paymentIntentId   String?        @map("payment_intent_ID") @db.Uuid
+  paymentIntentId   String?        @map("payment_intent_ID") @db.Char(36)
   provider          String
   providerPaymentId String?        @map("provider_payment_Id")
   amount            Decimal        @db.Decimal(10, 2)
   currency          String         @default("GBP")
-  capturedAt        DateTime?      @map("captured_at") @db.Timestamptz(6)
-  refundedAt        DateTime?      @map("refunded_at") @db.Timestamptz(6)
+  capturedAt        DateTime?      @map("captured_at")
+  refundedAt        DateTime?      @map("refunded_at")
   rawPayload        Json           @default("{}") @map("raw_payload")
-  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt         DateTime       @default(now()) @map("created_at")
   order             Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   paymentIntent     PaymentIntent? @relation(fields: [paymentIntentId], references: [id], onDelete: SetNull)
   events            PaymentEvent[]
@@ -292,12 +292,12 @@ model Payment {
 }
 
 model PaymentEvent {
-  id              String   @id @default(uuid()) @db.Uuid
-  paymentId       String   @map("payment_id") @db.Uuid
+  id              String   @id @default(uuid()) @db.Char(36)
+  paymentId       String   @map("payment_id") @db.Char(36)
   eventType       String   @map("event_type")
   providerEventId String?  @map("provider_event_id")
   payload         Json     @default("{}")
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt       DateTime @default(now()) @map("created_at")
   payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
 
   @@map("payment_events")

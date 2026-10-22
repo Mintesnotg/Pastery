@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { env } from "../../config/env.js";
 import { getPermissionsByRoleIds } from "../permissions/permission.service.js";
 import {
   findActiveUserByEmail,
@@ -21,8 +22,15 @@ import {
   issueEmailVerification,
 } from "./email-verification.service.js";
 
+const sessionCookieOptions = {
+  httpOnly: true,
+  sameSite: env.cookieSameSite,
+  secure: env.cookieSecure,
+  path: "/",
+} as const;
+
 function setSessionCookie(res: Response, token: string) {
-  res.cookie("session", token, { httpOnly: true, sameSite: "lax", secure: false, path: "/" });
+  res.cookie("session", token, sessionCookieOptions);
 }
 
 export async function loginController(req: Request, res: Response) {
@@ -162,6 +170,6 @@ export async function updateMeController(req: AuthedRequest, res: Response) {
 }
 
 export async function logoutController(_req: Request, res: Response) {
-  res.clearCookie("session", { path: "/" });
+  res.clearCookie("session", sessionCookieOptions);
   res.json({ success: true });
 }

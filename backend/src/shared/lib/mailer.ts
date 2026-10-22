@@ -1,12 +1,25 @@
-import { Resend } from "resend";
+import nodemailer, { type Transporter } from "nodemailer";
 import { env } from "../../config/env.js";
+import { logger } from "./logger.js";
 
-let client: Resend | null = null;
+let smtpTransport: Transporter | null = null;
 
-function getResend() {
-  if (!env.resendApiKey) return null;
-  if (!client) client = new Resend(env.resendApiKey);
-  return client;
+function getSmtpTransport() {
+  if (env.emailTransport !== "smtp") return null;
+  if (!smtpTransport) {
+    smtpTransport = nodemailer.createTransport({
+      host: env.smtpHost,
+      port: env.smtpPort,
+      secure: env.smtpSecure,
+      requireTLS: !env.smtpSecure,
+      auth: { user: env.smtpUser, pass: env.smtpPass },
+      // Fail fast if the host blocks outbound SMTP instead of hanging the request.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
+    });
+  }
+  return smtpTransport;
 }
 
 export async function sendEmail(input: {
@@ -14,27 +27,24 @@ export async function sendEmail(input: {
   subject: string;
   html: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  const resend = getResend();
-  if (!resend) {
-    console.warn("[mailer] RESEND_API_KEY missing; email not sent:", input.subject, input.to);
+  const transport = getSmtpTransport();
+  if (!transport) {
+    logger.warn({ subject: input.subject }, "email transport disabled; email not sent");
     return { ok: false, error: "Email service not configured" };
   }
 
   try {
-    const { error } = await resend.emails.send({
+    await transport.sendMail({
       from: env.mailFrom,
-      to: [input.to],
+      to: input.to,
       subject: input.subject,
       html: input.html,
     });
-    if (error) {
-      console.error("[mailer] Resend error:", error);
-      return { ok: false, error: error.message ?? "Failed to send email" };
-    }
+    logger.info({ subject: input.subject }, "email sent");
     return { ok: true };
   } catch (err) {
-    console.error("[mailer] send failed:", err);
-    return { ok: false, error: (err as Error).message };
+    logger.error({ err, subject: input.subject }, "email send failed");
+    return { ok: false, error: "Failed to send email" };
   }
 }
 

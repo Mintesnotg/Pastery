@@ -14,7 +14,8 @@ export function listPublicProducts(filters: {
   if (filters.isSpecial !== undefined) where.isSpecial = filters.isSpecial;
   if (filters.categoryId !== undefined) where.categoryId = filters.categoryId;
   if (filters.categoryName) {
-    where.category = { name: { equals: filters.categoryName, mode: "insensitive" } };
+    // MySQL utf8mb4_unicode_ci collation makes equals/contains case-insensitive.
+    where.category = { name: { equals: filters.categoryName } };
   }
   return prisma.product.findMany({
     where,
@@ -34,9 +35,9 @@ export function listAdminProducts(options: {
   if (options.search?.trim()) {
     const q = options.search.trim();
     where.OR = [
-      { name: { contains: q, mode: "insensitive" } },
-      { description: { contains: q, mode: "insensitive" } },
-      { category: { name: { contains: q, mode: "insensitive" } } },
+      { name: { contains: q } },
+      { description: { contains: q } },
+      { category: { name: { contains: q } } },
     ];
   }
   return prisma.product.findMany({
@@ -54,9 +55,9 @@ export function countAdminProducts(options: { includeInactive?: boolean; search?
   if (options.search?.trim()) {
     const q = options.search.trim();
     where.OR = [
-      { name: { contains: q, mode: "insensitive" } },
-      { description: { contains: q, mode: "insensitive" } },
-      { category: { name: { contains: q, mode: "insensitive" } } },
+      { name: { contains: q } },
+      { description: { contains: q } },
+      { category: { name: { contains: q } } },
     ];
   }
   return prisma.product.count({ where });

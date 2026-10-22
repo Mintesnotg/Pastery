@@ -147,7 +147,3 @@ export async function loginWithGoogleIdToken(idToken: string) {
   const session = await buildSessionForUser(user.id, user.email);
   return { session };
 }
-
-export async function ensureCustomerRoleId() {
-  return findCustomerRoleId();
-}

@@ -5,7 +5,7 @@ export const openapiSpec = {
     version: "1.0.0",
     description: "Backend API documentation for products, orders, messages, auth, and account management.",
   },
-  servers: [{ url: "http://localhost:4000" }],
+  servers: [{ url: "/" }],
   tags: [
     { name: "Health" },
     { name: "Products" },

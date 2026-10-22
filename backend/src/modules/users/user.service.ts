@@ -108,7 +108,7 @@ export async function createNewUser(
     if (validRoles.length !== roleIds.length) return { invalidRoleIds: true };
   }
 
-  const passwordHash = hashPassword(password);
+  const passwordHash = await hashPassword(password);
   const fullName = `${firstName} ${lastName}`.trim();
 
   const created = await prisma.$transaction(async (tx) => {

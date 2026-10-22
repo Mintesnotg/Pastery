@@ -19,8 +19,8 @@ export function listAdminCategories(options: {
   if (options.search?.trim()) {
     const q = options.search.trim();
     where.OR = [
-      { name: { contains: q, mode: "insensitive" } },
-      { description: { contains: q, mode: "insensitive" } },
+      { name: { contains: q } },
+      { description: { contains: q } },
     ];
   }
   return prisma.productCategory.findMany({
@@ -37,8 +37,8 @@ export function countAdminCategories(options: { includeInactive?: boolean; searc
   if (options.search?.trim()) {
     const q = options.search.trim();
     where.OR = [
-      { name: { contains: q, mode: "insensitive" } },
-      { description: { contains: q, mode: "insensitive" } },
+      { name: { contains: q } },
+      { description: { contains: q } },
     ];
   }
   return prisma.productCategory.count({ where });
