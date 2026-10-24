@@ -17,6 +17,16 @@ export type OrderPayment = {
   currency: string;
 };
 
+export type DeliveryNote = {
+  id: number;
+  orderId: number;
+  signerName: string;
+  medium: "paper" | "digital";
+  signedAt: string;
+  recordedByUserId?: string;
+  createdAt?: string;
+};
+
 export type Order = {
   id: number;
   userId?: string;
@@ -29,11 +39,30 @@ export type Order = {
   total: string | number;
   currency?: string;
   status: string;
+  channel?: "retail" | "wholesale";
+  fulfillmentType?: "pickup" | "delivery";
+  deliveryAddress?: string | null;
+  paymentTerms?: "prepaid" | "credit";
+  prepaidPaidAt?: string | null;
+  paymentReference?: string | null;
   createdAt: string;
   updatedAt?: string;
   items: OrderItem[];
   payment?: OrderPayment | null;
+  deliveryNote?: DeliveryNote | null;
 };
+
+export type DeliveryNotePayload = {
+  signerName: string;
+  medium: "paper" | "digital";
+};
+
+export function truncateAddress(address: string | null | undefined, max = 48) {
+  if (!address) return "";
+  const trimmed = address.trim();
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, max - 1)}…`;
+}
 
 export type OrderStatusGroup = "pending" | "delivered" | "cancelled";
 

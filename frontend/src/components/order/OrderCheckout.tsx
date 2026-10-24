@@ -14,7 +14,12 @@ import {
 import { Toast, useToast } from "@/components/ui/Toast";
 import { useCart } from "@/context/CartContext";
 import { apiUrl, withPermission } from "@/lib/api";
-import type { StoreProduct } from "@/lib/products";
+import {
+  earliestFulfillmentDate,
+  fetchPublicOrderSettings,
+  type PublicOrderSettings,
+} from "@/lib/orderSettings";
+import { effectiveUnitPrice, type StoreProduct } from "@/lib/products";
 
 type Category = { id: number; name: string; description: string | null };
 
@@ -30,12 +35,17 @@ export default function OrderCheckout({
   variant = "public",
 }: OrderCheckoutProps) {
   const router = useRouter();
-  const { cart, addToCart, changeQty, removeItem, clearCart, total, itemCount } = useCart();
+  const { cart, addToCart, changeQty, removeItem, clearCart, itemCount } = useCart();
   const { toast, showToast, dismiss } = useToast();
   const [activeCategoryId, setActiveCategoryId] = useState<number | "all">("all");
   const [submitting, setSubmitting] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [pricingMode, setPricingMode] = useState<"retail" | "wholesale">("retail");
+  const [minPickupDate, setMinPickupDate] = useState("");
+  const [orderSettings, setOrderSettings] = useState<PublicOrderSettings | null>(null);
   const [error, setError] = useState("");
+  const [fulfillmentType, setFulfillmentType] = useState<"pickup" | "delivery">("pickup");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
   const [details, setDetails] = useState({
     customerName: "",
     email: "",
@@ -75,6 +85,18 @@ export default function OrderCheckout({
     }
 
     (async () => {
+      const settings = await fetchPublicOrderSettings();
+      if (cancelled) return;
+      setOrderSettings(settings);
+      const earliest = earliestFulfillmentDate(settings);
+      setMinPickupDate(earliest);
+      setDetails((prev) => ({
+        ...prev,
+        pickupDate: prev.pickupDate && prev.pickupDate >= earliest ? prev.pickupDate : earliest,
+      }));
+    })();
+
+    (async () => {
       try {
         const res = await fetch(apiUrl("/api/auth/me"), { credentials: "include" });
         if (!res.ok) {
@@ -94,6 +116,24 @@ export default function OrderCheckout({
           customerName: prev.customerName || name || "",
           email: prev.email || email,
         }));
+
+        if (variant === "dashboard") {
+          const baRes = await fetch(apiUrl("/api/business-accounts/me"), {
+            credentials: "include",
+          });
+          if (!cancelled && baRes.ok) {
+            const account = await baRes.json();
+            if (account?.approval_status === "approved") {
+              setPricingMode("wholesale");
+              const line1 = (account.address_line1 as string | undefined) ?? "";
+              const line2 = (account.address_line2 as string | null | undefined) ?? "";
+              const city = (account.city as string | undefined) ?? "";
+              const postcode = (account.postcode as string | undefined) ?? "";
+              const prefill = [line1, line2, city, postcode].filter(Boolean).join(", ");
+              if (prefill) setDeliveryAddress((prev) => prev || prefill);
+            }
+          }
+        }
       } catch {
         if (!cancelled) setIsAuthenticated(false);
       }
@@ -102,7 +142,15 @@ export default function OrderCheckout({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [variant]);
+
+  const unitPrice = (product: StoreProduct) => effectiveUnitPrice(product, pricingMode);
+
+  const total = useMemo(
+    () => cart.reduce((sum, i) => sum + unitPrice(i.product) * i.qty, 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- unitPrice depends on pricingMode
+    [cart, pricingMode],
+  );
 
   const visible = useMemo(
     () =>
@@ -145,6 +193,11 @@ export default function OrderCheckout({
       return;
     }
 
+    if (fulfillmentType === "delivery" && !deliveryAddress.trim()) {
+      setError("Delivery address is required for delivery orders.");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
     try {
@@ -156,10 +209,13 @@ export default function OrderCheckout({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...details,
+            channel: pricingMode,
+            fulfillmentType,
+            deliveryAddress: fulfillmentType === "delivery" ? deliveryAddress.trim() : null,
             items: cart.map((i) => ({
               id: i.product.id,
               name: i.product.name,
-              price: i.product.price,
+              price: unitPrice(i.product),
               qty: i.qty,
             })),
             total: Number(total.toFixed(2)),
@@ -172,11 +228,14 @@ export default function OrderCheckout({
         router.push("/account?next=/dashboard/place-order");
         return;
       }
+      const data = await res.json().catch(() => ({}));
       if (res.status === 403) {
-        throw new Error("You do not have permission to place orders.");
+        throw new Error(
+          (data as { error?: string }).error ||
+            "You cannot place this order (permission, credit, or account pause).",
+        );
       }
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Something went wrong.");
+      if (!res.ok) throw new Error((data as { error?: string }).error || "Something went wrong.");
       try {
         sessionStorage.removeItem("hob.checkout.draft.v1");
       } catch {
@@ -245,7 +304,12 @@ export default function OrderCheckout({
                 <h3 className="font-display font-bold text-crust-deep">{p.name}</h3>
                 <p className="mt-0.5 line-clamp-2 text-xs text-crust-deep/60">{p.description}</p>
                 <div className="mt-auto flex items-center justify-between pt-2">
-                  <span className="font-bold text-crust-dark">£{p.price.toFixed(2)}</span>
+                  <span className="font-bold text-crust-dark">
+                    £{unitPrice(p).toFixed(2)}
+                    {pricingMode === "wholesale" && p.wholesalePrice != null && (
+                      <span className="ml-1 text-xs font-medium text-crust/50">wholesale</span>
+                    )}
+                  </span>
                   <button
                     type="button"
                     onClick={() => handleAdd(p)}
@@ -299,7 +363,7 @@ export default function OrderCheckout({
                       <p className="truncate text-sm font-semibold text-crust-deep">
                         {i.product.name}
                       </p>
-                      <p className="text-xs text-crust/60">£{i.product.price.toFixed(2)}</p>
+                      <p className="text-xs text-crust/60">£{unitPrice(i.product).toFixed(2)}</p>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
@@ -366,6 +430,7 @@ export default function OrderCheckout({
                 <input
                   required
                   type="date"
+                  min={minPickupDate || undefined}
                   value={details.pickupDate}
                   onChange={(e) => setDetails({ ...details, pickupDate: e.target.value })}
                   className="w-full rounded-xl border border-crust/15 bg-cream/50 px-4 py-2.5 text-sm outline-none focus:border-crust"
@@ -378,6 +443,51 @@ export default function OrderCheckout({
                   className="w-full rounded-xl border border-crust/15 bg-cream/50 px-4 py-2.5 text-sm outline-none focus:border-crust"
                 />
               </div>
+              {orderSettings && (
+                <p className="text-xs text-crust/60">
+                  Orders after {orderSettings["order.cutoff_time"]}{" "}
+                  {orderSettings["order.timezone"]} time skip the next morning.
+                </p>
+              )}
+              {pricingMode === "wholesale" && (
+                <p className="text-xs font-medium text-emerald-800">
+                  Wholesale pricing applied for your approved cafe account.
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFulfillmentType("pickup")}
+                  className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                    fulfillmentType === "pickup"
+                      ? "border-crust bg-crust text-white"
+                      : "border-crust/15 bg-cream/50 text-crust-deep hover:bg-warm"
+                  }`}
+                >
+                  Pickup
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFulfillmentType("delivery")}
+                  className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                    fulfillmentType === "delivery"
+                      ? "border-crust bg-crust text-white"
+                      : "border-crust/15 bg-cream/50 text-crust-deep hover:bg-warm"
+                  }`}
+                >
+                  Delivery
+                </button>
+              </div>
+              {fulfillmentType === "delivery" && (
+                <textarea
+                  required
+                  rows={2}
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  placeholder="Delivery address *"
+                  className="w-full rounded-xl border border-crust/15 bg-cream/50 px-4 py-2.5 text-sm outline-none focus:border-crust"
+                />
+              )}
               <textarea
                 rows={2}
                 value={details.notes}
@@ -399,7 +509,9 @@ export default function OrderCheckout({
                 {submitting ? "Placing order…" : `Place Order · £${total.toFixed(2)}`}
               </button>
               <p className="text-center text-xs text-crust/60">
-                Pay when you collect. We bake to order for guaranteed freshness.
+                {pricingMode === "wholesale"
+                  ? "Credit terms follow your cafe tier. We bake to order for freshness."
+                  : "Pay when you collect. We bake to order for guaranteed freshness."}
               </p>
             </form>
           )}

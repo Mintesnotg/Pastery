@@ -18,3 +18,8 @@ export const googleAuthSchema = z.object({
 export const resendVerificationSchema = z.object({
   email: z.string().email(),
 });
+
+export const verifyOtpSchema = z.object({
+  email: z.string().email(),
+  code: z.string().regex(/^\d{6}$/, "Code must be exactly 6 digits"),
+});

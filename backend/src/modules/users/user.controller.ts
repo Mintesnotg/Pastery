@@ -50,7 +50,7 @@ export async function createUserController(req: Request, res: Response) {
       success: true,
       requiresVerification: true,
       verificationSent: created.verificationSent ?? false,
-      message: "Account created. Please check your email to verify before signing in.",
+      message: "Account created. Enter the 6-digit code we emailed you to verify before signing in.",
       email: created.user.email,
     });
   }
