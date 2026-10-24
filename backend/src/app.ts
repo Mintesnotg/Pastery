@@ -20,6 +20,8 @@ import { bannersRouter } from "./modules/banners/banner.routes.js";
 import { businessAccountsRouter } from "./modules/business-accounts/businessAccount.routes.js";
 import { settingsRouter } from "./modules/settings/setting.routes.js";
 import { standingOrdersRouter } from "./modules/standing-orders/standingOrder.routes.js";
+import { invoicesRouter } from "./modules/invoices/invoice.routes.js";
+import { collectionsRouter } from "./modules/collections/collection.routes.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 import "./shared/types/express.js";
 
@@ -46,6 +48,8 @@ app.use("/api/orders", ordersRouter);
 app.use("/api/business-accounts", businessAccountsRouter);
 app.use("/api/settings", settingsRouter);
 app.use("/api/standing-orders", standingOrdersRouter);
+app.use("/api/invoices", invoicesRouter);
+app.use("/api/collections", collectionsRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/roles", rolesRouter);

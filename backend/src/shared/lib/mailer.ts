@@ -172,3 +172,85 @@ export async function sendVerificationEmail(email: string, otp: string, name?: s
     html: verificationEmailHtml(otp, name),
   });
 }
+
+export type InvoiceReminderEmailInput = {
+  to: string;
+  contactName?: string;
+  businessName: string;
+  invoiceNumber: string;
+  amountDue: number;
+  dueDate: string;
+  kind: "pre_due" | "due";
+};
+
+function invoiceReminderEmailHtml(input: InvoiceReminderEmailInput) {
+  const greeting = input.contactName
+    ? `Hi ${escapeHtml(input.contactName)},`
+    : "Hello,";
+  const title =
+    input.kind === "pre_due"
+      ? "Invoice payment reminder"
+      : "Invoice due today";
+  const body =
+    input.kind === "pre_due"
+      ? `This is a friendly reminder that invoice <strong>${escapeHtml(input.invoiceNumber)}</strong> for <strong>${escapeHtml(input.businessName)}</strong> is due in 2 days.`
+      : `Invoice <strong>${escapeHtml(input.invoiceNumber)}</strong> for <strong>${escapeHtml(input.businessName)}</strong> is due today.`;
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${title}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F6EFE6;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F6EFE6;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+               style="max-width:560px;background-color:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid #EADBC8;">
+          <tr>
+            <td align="center" style="background-color:#8B4513;padding:28px 24px;">
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:26px;letter-spacing:1px;color:#FFF8EE;font-weight:bold;">
+                House of Bread
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:36px 32px;font-family:Georgia,'Times New Roman',serif;color:#3F2A18;">
+              <h1 style="margin:0 0 16px 0;font-size:22px;line-height:1.3;font-weight:bold;">${title}</h1>
+              <p style="margin:0 0 12px 0;font-size:16px;line-height:1.6;">${greeting}</p>
+              <p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;">${body}</p>
+              <p style="margin:0;font-size:16px;line-height:1.6;">
+                Amount due: <strong>£${input.amountDue.toFixed(2)}</strong><br />
+                Due date: <strong>${escapeHtml(input.dueDate)}</strong>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="border-top:1px solid #EADBC8;padding:20px 32px 28px 32px;font-family:Georgia,'Times New Roman',serif;">
+              <p style="margin:0;font-size:12px;line-height:1.6;color:#9A8575;">
+                &copy; ${new Date().getFullYear()} House of Bread &middot; London, UK
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendInvoiceReminderEmail(input: InvoiceReminderEmailInput) {
+  const subject =
+    input.kind === "pre_due"
+      ? `Reminder: invoice ${input.invoiceNumber} due soon`
+      : `Invoice ${input.invoiceNumber} is due today`;
+  return sendEmail({
+    to: input.to,
+    subject,
+    html: invoiceReminderEmailHtml(input),
+  });
+}

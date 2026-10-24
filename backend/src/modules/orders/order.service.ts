@@ -5,7 +5,9 @@ import {
 } from "../business-accounts/businessAccount.service.js";
 import { assertFulfillmentWindow } from "../settings/setting.service.js";
 import {
+  createDeliveryNoteAndCompleteOrder,
   deleteOrderById,
+  findDeliveryNoteByOrderId,
   findLatestPaymentIntentByOrderId,
   findOrderById,
   findProductImagesByIds,
@@ -66,8 +68,33 @@ async function enrichItemsWithProductImages(items: OrderItemRow[]) {
   }));
 }
 
-export async function getOrdersWithItems(userId?: string) {
-  const rows = await listOrders(userId);
+export type OrderListFilters = {
+  userId?: string;
+  pickupDate?: string;
+  channel?: "retail" | "wholesale" | "custom";
+  status?: string;
+};
+
+const STATUS_PIPELINE = ["pending", "confirmed", "preparing", "ready", "completed"] as const;
+
+export function assertOrderStatusTransition(from: string, to: string) {
+  if (from === to) {
+    throw httpError(400, "Order already has this status");
+  }
+  if (from === "cancelled" || from === "completed") {
+    throw httpError(400, "Cannot change status of a terminal order");
+  }
+  if (to === "cancelled") return;
+
+  const fromIdx = STATUS_PIPELINE.indexOf(from as (typeof STATUS_PIPELINE)[number]);
+  const toIdx = STATUS_PIPELINE.indexOf(to as (typeof STATUS_PIPELINE)[number]);
+  if (fromIdx < 0 || toIdx < 0 || toIdx <= fromIdx) {
+    throw httpError(400, `Invalid status transition from ${from} to ${to}`);
+  }
+}
+
+export async function getOrdersWithItems(filters: OrderListFilters = {}) {
+  const rows = await listOrders(filters);
   const orderIds = rows.map((order) => order.id);
   const allItems = await listOrderItemsByOrderIds(orderIds);
   const enrichedItems = await enrichItemsWithProductImages(allItems);
@@ -233,7 +260,45 @@ export async function markOrderPaid(
   });
 }
 
-export async function changeOrderStatus(id: number, status: string) {
+export type DeliveryNoteInput = {
+  signerName: string;
+  medium: "paper" | "digital";
+};
+
+export async function changeOrderStatus(
+  id: number,
+  status: string,
+  opts: { deliveryNote?: DeliveryNoteInput | null; recordedByUserId?: string } = {},
+) {
+  const order = await findOrderById(id);
+  if (!order) return null;
+  assertOrderStatusTransition(order.status, status);
+
+  if (status === "completed" && order.fulfillmentType === "delivery") {
+    const existing = order.deliveryNote ?? (await findDeliveryNoteByOrderId(id));
+    if (existing) {
+      return updateOrderStatusById(id, status);
+    }
+
+    const note = opts.deliveryNote;
+    if (!note?.signerName?.trim()) {
+      throw httpError(400, "Delivery note (signer name) is required to complete a delivery order");
+    }
+    if (note.medium !== "paper" && note.medium !== "digital") {
+      throw httpError(400, "Delivery note medium must be paper or digital");
+    }
+    if (!opts.recordedByUserId) {
+      throw httpError(401, "Unauthenticated");
+    }
+
+    return createDeliveryNoteAndCompleteOrder({
+      orderId: id,
+      signerName: note.signerName.trim(),
+      medium: note.medium,
+      recordedByUserId: opts.recordedByUserId,
+    });
+  }
+
   return updateOrderStatusById(id, status);
 }
 

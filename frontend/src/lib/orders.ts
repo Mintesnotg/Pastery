@@ -17,6 +17,16 @@ export type OrderPayment = {
   currency: string;
 };
 
+export type DeliveryNote = {
+  id: number;
+  orderId: number;
+  signerName: string;
+  medium: "paper" | "digital";
+  signedAt: string;
+  recordedByUserId?: string;
+  createdAt?: string;
+};
+
 export type Order = {
   id: number;
   userId?: string;
@@ -39,6 +49,12 @@ export type Order = {
   updatedAt?: string;
   items: OrderItem[];
   payment?: OrderPayment | null;
+  deliveryNote?: DeliveryNote | null;
+};
+
+export type DeliveryNotePayload = {
+  signerName: string;
+  medium: "paper" | "digital";
 };
 
 export function truncateAddress(address: string | null | undefined, max = 48) {

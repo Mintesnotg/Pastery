@@ -34,3 +34,14 @@ export const orderSchema = z
 export const markPaidSchema = z.object({
   payment_reference: z.string().max(191).optional().nullable(),
 });
+
+export const updateOrderStatusSchema = z.object({
+  status: z.enum(["pending", "confirmed", "preparing", "ready", "completed", "cancelled"]),
+  deliveryNote: z
+    .object({
+      signerName: z.string().trim().min(1).max(191),
+      medium: z.enum(["paper", "digital"]),
+    })
+    .optional()
+    .nullable(),
+});

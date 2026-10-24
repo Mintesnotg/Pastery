@@ -176,6 +176,20 @@ export function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModa
             ) : null}
             {order.notes ? <InfoRow label="Notes" value={order.notes} /> : null}
           </DetailSection>
+
+          {order.deliveryNote ? (
+            <DetailSection title="Delivery note">
+              <InfoRow label="Signer" value={order.deliveryNote.signerName} />
+              <InfoRow
+                label="Medium"
+                value={order.deliveryNote.medium === "paper" ? "Paper" : "Digital"}
+              />
+              <InfoRow
+                label="Signed"
+                value={formatOrderDateTime(order.deliveryNote.signedAt)}
+              />
+            </DetailSection>
+          ) : null}
         </div>
       ) : null}
     </Modal>

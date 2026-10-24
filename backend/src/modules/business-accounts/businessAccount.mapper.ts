@@ -22,6 +22,7 @@ export type BusinessAccountDto = {
   credit_limit: number;
   credit_balance: number;
   overdue_paused: boolean;
+  late_strike_count: number;
   notes: string | null;
   approved_at: string | null;
   created_at: string;
@@ -48,6 +49,7 @@ export function toBusinessAccountDto(row: AccountWithUser): BusinessAccountDto {
     credit_limit: Number(row.creditLimit),
     credit_balance: Number(row.creditBalance),
     overdue_paused: row.overduePaused,
+    late_strike_count: row.lateStrikeCount,
     notes: row.notes,
     approved_at: row.approvedAt?.toISOString() ?? null,
     created_at: row.createdAt.toISOString(),

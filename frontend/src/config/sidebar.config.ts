@@ -2,6 +2,7 @@ import {
   Building2,
   ClipboardList,
   Ellipsis,
+  Factory,
   FileText,
   FolderTree,
   Image,
@@ -19,6 +20,8 @@ import {
   UserCog,
   Users,
   FolderOpen,
+  Receipt,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -66,6 +69,12 @@ export const sidebarConfig: SidebarItem[] = [
         icon: Repeat,
         permission: "create.standing_order",
       },
+      {
+        name: "My invoices",
+        route: "/my-invoices",
+        icon: Receipt,
+        permission: "view.invoices",
+      },
     ],
   },
   {
@@ -105,10 +114,28 @@ export const sidebarConfig: SidebarItem[] = [
         permission: "view.business_accounts",
       },
       {
+        name: "Production",
+        route: "/production",
+        icon: Factory,
+        permission: "view.production",
+      },
+      {
         name: "Standing orders",
         route: "/standing-orders-admin",
         icon: RefreshCw,
         permission: "manage.standing_orders",
+      },
+      {
+        name: "Invoices",
+        route: "/invoices",
+        icon: Receipt,
+        permission: "create.invoice",
+      },
+      {
+        name: "Collections",
+        route: "/collections",
+        icon: Wallet,
+        permission: "manage.collections",
       },
     ],
   },

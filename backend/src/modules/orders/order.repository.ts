@@ -16,10 +16,24 @@ export async function createOrderItems(items: OrderItemInsertInput[]) {
   });
 }
 
-export async function listOrders(userId?: string) {
+export type ListOrdersFilters = {
+  userId?: string;
+  pickupDate?: string;
+  channel?: "retail" | "wholesale" | "custom";
+  status?: string;
+};
+
+export async function listOrders(filters: ListOrdersFilters = {}) {
+  const where: Prisma.OrderWhereInput = {};
+  if (filters.userId) where.userId = filters.userId;
+  if (filters.pickupDate) where.pickupDate = filters.pickupDate;
+  if (filters.channel) where.channel = filters.channel;
+  if (filters.status) where.status = filters.status as never;
+
   return prisma.order.findMany({
-    where: userId ? { userId } : undefined,
-    orderBy: { createdAt: "desc" },
+    where: Object.keys(where).length ? where : undefined,
+    include: { deliveryNote: true },
+    orderBy: [{ pickupTime: "asc" }, { createdAt: "desc" }],
   });
 }
 
@@ -71,14 +85,48 @@ export async function updateOrderStatusById(id: number, status: string) {
     .update({
       where: { id },
       data: { status: status as never },
+      include: { deliveryNote: true },
     })
     .catch(() => null);
+}
+
+export async function findDeliveryNoteByOrderId(orderId: number) {
+  return prisma.deliveryNote.findUnique({ where: { orderId } });
+}
+
+export type CreateDeliveryNoteInput = {
+  orderId: number;
+  signerName: string;
+  medium: "paper" | "digital";
+  recordedByUserId: string;
+};
+
+export async function createDeliveryNoteAndCompleteOrder(input: CreateDeliveryNoteInput) {
+  return prisma.$transaction(async (tx) => {
+    await tx.deliveryNote.create({
+      data: {
+        orderId: input.orderId,
+        signerName: input.signerName,
+        medium: input.medium,
+        recordedByUserId: input.recordedByUserId,
+      },
+    });
+    return tx.order.update({
+      where: { id: input.orderId },
+      data: { status: "completed" },
+      include: { deliveryNote: true },
+    });
+  });
 }
 
 export async function deleteOrderById(id: number) {
   return prisma.order.delete({ where: { id } }).catch(() => null);
 }
 
-export const findOrderById = (id: number) => prisma.order.findUnique({ where: { id } });
+export const findOrderById = (id: number) =>
+  prisma.order.findUnique({
+    where: { id },
+    include: { deliveryNote: true },
+  });
 export const findOrdersByCustomerEmail = (email: string) =>
-  prisma.order.findMany({ where: { email } });
+  prisma.order.findMany({ where: { email }, include: { deliveryNote: true } });

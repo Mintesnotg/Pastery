@@ -329,6 +329,7 @@ async function main() {
     { key: "manage.credit", name: "Manage Credit" },
     { key: "create.invoice", name: "Create Invoice" },
     { key: "record.payment", name: "Record Invoice Payment" },
+    { key: "manage.collections", name: "Manage Collections" },
     { key: "view.production", name: "View Production Board" },
     { key: "manage.standing_orders", name: "Manage Standing Orders" },
     { key: "manage.settings", name: "Manage App Settings" },

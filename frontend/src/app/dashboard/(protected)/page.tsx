@@ -17,7 +17,9 @@ import {
   MessageSquare,
   ShieldCheck,
 } from "lucide-react";
+import { DeliveryCompleteModal } from "@/components/orders/DeliveryCompleteModal";
 import { apiUrl, withPermission } from "@/lib/api";
+import type { DeliveryNote, DeliveryNotePayload } from "@/lib/orders";
 
 type OrderItemInfo = {
   id?: number;
@@ -46,6 +48,7 @@ type OrderType = {
   prepaidPaidAt?: string | null;
   createdAt: string;
   items?: OrderItemInfo[];
+  deliveryNote?: DeliveryNote | null;
 };
 
 type MessageType = {
@@ -67,6 +70,7 @@ export default function AdminPage() {
   const [dateFilter, setDateFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [completeTarget, setCompleteTarget] = useState<OrderType | null>(null);
 
   const fetchOrders = async () => {
     setLoadingOrders(true);
@@ -119,7 +123,24 @@ export default function AdminPage() {
     };
   }, []);
 
-  const handleUpdateStatus = async (orderId: number, newStatus: string) => {
+  const handleUpdateStatus = async (
+    order: OrderType | number,
+    newStatus: string,
+    deliveryNote?: DeliveryNotePayload,
+  ) => {
+    const orderId = typeof order === "number" ? order : order.id;
+    const current = typeof order === "number" ? orders.find((o) => o.id === orderId) : order;
+
+    if (
+      newStatus === "completed" &&
+      current?.fulfillmentType === "delivery" &&
+      !current.deliveryNote &&
+      !deliveryNote
+    ) {
+      if (current) setCompleteTarget(current);
+      return;
+    }
+
     setProcessingId(orderId);
     try {
       const res = await fetch(
@@ -128,10 +149,27 @@ export default function AdminPage() {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ status: newStatus }),
+          body: JSON.stringify({
+            status: newStatus,
+            ...(deliveryNote ? { deliveryNote } : {}),
+          }),
         }),
       );
-      if (res.ok) setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === orderId
+              ? {
+                  ...o,
+                  status: newStatus,
+                  deliveryNote: (data as { order?: OrderType }).order?.deliveryNote ?? o.deliveryNote,
+                }
+              : o,
+          ),
+        );
+        setCompleteTarget(null);
+      }
     } finally {
       setProcessingId(null);
     }
@@ -233,6 +271,18 @@ export default function AdminPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <DeliveryCompleteModal
+        isOpen={completeTarget != null}
+        orderLabel={completeTarget ? `#HB-${completeTarget.id}` : undefined}
+        busy={completeTarget != null && processingId === completeTarget.id}
+        onClose={() => {
+          if (processingId == null) setCompleteTarget(null);
+        }}
+        onConfirm={(note) => {
+          if (!completeTarget) return;
+          void handleUpdateStatus(completeTarget, "completed", note);
+        }}
+      />
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-crust/10 pb-6">
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-honey/15 px-3 py-1 text-xs font-bold text-crust-dark">
@@ -402,9 +452,9 @@ export default function AdminPage() {
                       <div className="space-y-2">
                         <p className="text-xs font-semibold uppercase text-crust/60">Update Status</p>
                         <div className="flex flex-wrap gap-2">
-                          {order.status !== "preparing" && order.status !== "ready" && order.status !== "completed" && <button disabled={processingId === order.id} onClick={() => void handleUpdateStatus(order.id, "preparing")} className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white">Start Prep</button>}
-                          {order.status !== "ready" && order.status !== "completed" && <button disabled={processingId === order.id} onClick={() => void handleUpdateStatus(order.id, "ready")} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white">Mark Ready</button>}
-                          {order.status !== "completed" && <button disabled={processingId === order.id} onClick={() => void handleUpdateStatus(order.id, "completed")} className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-bold text-white">Collect & Complete</button>}
+                          {order.status !== "preparing" && order.status !== "ready" && order.status !== "completed" && <button disabled={processingId === order.id} onClick={() => void handleUpdateStatus(order, "preparing")} className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white">Start Prep</button>}
+                          {order.status !== "ready" && order.status !== "completed" && <button disabled={processingId === order.id} onClick={() => void handleUpdateStatus(order, "ready")} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white">Mark Ready</button>}
+                          {order.status !== "completed" && <button disabled={processingId === order.id} onClick={() => void handleUpdateStatus(order, "completed")} className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-bold text-white">Collect & Complete</button>}
                           {order.paymentTerms === "prepaid" && !order.prepaidPaidAt && order.status !== "cancelled" && (
                             <button
                               disabled={processingId === order.id}

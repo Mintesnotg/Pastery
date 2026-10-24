@@ -66,6 +66,43 @@ enum PaymentTerms {
   @@map("payment_terms")
 }
 
+enum DeliveryNoteMedium {
+  paper
+  digital
+
+  @@map("delivery_note_medium")
+}
+
+enum InvoiceStatus {
+  open
+  paid
+  void
+
+  @@map("invoice_status")
+}
+
+enum InvoicePaymentMethod {
+  bank_transfer
+  cash
+  mobile
+
+  @@map("invoice_payment_method")
+}
+
+enum CollectionTaskStatus {
+  open
+  resolved
+  cancelled
+
+  @@map("collection_task_status")
+}
+
+enum CollectionTaskKind {
+  overdue_pause
+
+  @@map("collection_task_kind")
+}
+
 model ProductCategory {
   id          Int       @id @default(autoincrement())
   name        String
@@ -171,6 +208,10 @@ model User {
   productCategoriesUpdated ProductCategory[]  @relation("ProductCategoryUpdatedBy")
   businessAccount          BusinessAccount?
   standingOrders           StandingOrder[]
+  deliveryNotesRecorded    DeliveryNote[]       @relation("DeliveryNoteRecordedBy")
+  invoicesCreated          Invoice[]            @relation("InvoiceCreatedBy")
+  invoicePaymentsRecorded  InvoicePayment[]     @relation("InvoicePaymentRecordedBy")
+  collectionTasksResolved  CollectionTask[]     @relation("CollectionTaskResolvedBy")
 
   @@unique([email], map: "users_email_unique")
   @@map("users")
@@ -195,6 +236,7 @@ model BusinessAccount {
   creditLimit       Decimal                @default(0) @map("credit_limit") @db.Decimal(10, 2)
   creditBalance     Decimal                @default(0) @map("credit_balance") @db.Decimal(10, 2)
   overduePaused     Boolean                @default(false) @map("overdue_paused")
+  lateStrikeCount   Int                    @default(0) @map("late_strike_count")
   notes             String?                @db.Text
   approvedAt        DateTime?              @map("approved_at") @db.DateTime(6)
   createdAt         DateTime               @default(now()) @map("created_at") @db.DateTime(6)
@@ -202,6 +244,8 @@ model BusinessAccount {
   contactUser       User                   @relation(fields: [contactUserId], references: [id], onDelete: Restrict)
   orders            Order[]
   standingOrders    StandingOrder[]
+  invoices          Invoice[]
+  collectionTasks   CollectionTask[]
 
   @@index([approvalStatus], map: "business_accounts_approval_idx")
   @@index([creditTier], map: "business_accounts_tier_idx")
@@ -313,12 +357,108 @@ model Order {
   items             OrderItem[]
   paymentIntents    PaymentIntent[]
   payments          Payment[]
+  deliveryNote      DeliveryNote?
+  invoiceLine       InvoiceLine?
 
   @@index([userId], map: "orders_user_idx")
   @@index([businessAccountId], map: "orders_business_account_idx")
   @@index([channel], map: "orders_channel_idx")
   @@index([standingOrderId, pickupDate], map: "orders_standing_pickup_idx")
   @@map("orders")
+}
+
+model Invoice {
+  id                   Int              @id @default(autoincrement())
+  businessAccountId    Int              @map("business_account_id")
+  invoiceNumber        String           @unique @map("invoice_number") @db.VarChar(64)
+  periodStart          DateTime         @map("period_start") @db.Date
+  periodEnd            DateTime         @map("period_end") @db.Date
+  invoiceDate          DateTime         @map("invoice_date") @db.Date
+  dueDate              DateTime         @map("due_date") @db.Date
+  subtotal             Decimal          @db.Decimal(10, 2)
+  amountPaid           Decimal          @default(0) @map("amount_paid") @db.Decimal(10, 2)
+  currency             String           @default("GBP") @db.VarChar(3)
+  status               InvoiceStatus    @default(open)
+  reminderPreDueSentAt DateTime?        @map("reminder_pre_due_sent_at") @db.DateTime(6)
+  reminderDueSentAt    DateTime?        @map("reminder_due_sent_at") @db.DateTime(6)
+  createdByUserId      String           @map("created_by_user_id") @db.Char(36)
+  createdAt            DateTime         @default(now()) @map("created_at") @db.DateTime(6)
+  updatedAt            DateTime         @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
+  businessAccount      BusinessAccount  @relation(fields: [businessAccountId], references: [id], onDelete: Restrict)
+  createdBy            User             @relation("InvoiceCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  lines                InvoiceLine[]
+  payments             InvoicePayment[]
+  collectionTask       CollectionTask?
+
+  @@unique([businessAccountId, periodStart], map: "invoices_account_period_unique")
+  @@index([businessAccountId], map: "invoices_ba_idx")
+  @@index([status], map: "invoices_status_idx")
+  @@index([dueDate], map: "invoices_due_idx")
+  @@map("invoices")
+}
+
+model CollectionTask {
+  id                 Int                  @id @default(autoincrement())
+  businessAccountId  Int                  @map("business_account_id")
+  invoiceId          Int                  @unique @map("invoice_id")
+  kind               CollectionTaskKind   @default(overdue_pause)
+  status             CollectionTaskStatus @default(open)
+  daysOverdue        Int                  @map("days_overdue")
+  notes              String?              @db.Text
+  createdAt          DateTime             @default(now()) @map("created_at") @db.DateTime(6)
+  resolvedAt         DateTime?            @map("resolved_at") @db.DateTime(6)
+  resolvedByUserId   String?              @map("resolved_by_user_id") @db.Char(36)
+  businessAccount    BusinessAccount      @relation(fields: [businessAccountId], references: [id], onDelete: Cascade)
+  invoice            Invoice              @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  resolvedBy         User?                @relation("CollectionTaskResolvedBy", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([status], map: "collection_tasks_status_idx")
+  @@index([businessAccountId], map: "collection_tasks_ba_idx")
+  @@map("collection_tasks")
+}
+
+model InvoiceLine {
+  id              Int     @id @default(autoincrement())
+  invoiceId       Int     @map("invoice_id")
+  orderId         Int     @unique @map("order_id")
+  description     String  @db.VarChar(255)
+  amount          Decimal @db.Decimal(10, 2)
+  fulfillmentDate String  @map("fulfillment_date") @db.VarChar(10)
+  invoice         Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  order           Order   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([invoiceId], map: "invoice_lines_invoice_idx")
+  @@map("invoice_lines")
+}
+
+model InvoicePayment {
+  id               Int                  @id @default(autoincrement())
+  invoiceId        Int                  @map("invoice_id")
+  amount           Decimal              @db.Decimal(10, 2)
+  paidAt           DateTime             @default(now()) @map("paid_at") @db.DateTime(6)
+  reference        String?              @db.VarChar(191)
+  method           InvoicePaymentMethod
+  recordedByUserId String               @map("recorded_by_user_id") @db.Char(36)
+  createdAt        DateTime             @default(now()) @map("created_at") @db.DateTime(6)
+  invoice          Invoice              @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  recordedBy       User                 @relation("InvoicePaymentRecordedBy", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([invoiceId], map: "invoice_payments_invoice_idx")
+  @@map("invoice_payments")
+}
+
+model DeliveryNote {
+  id               Int                 @id @default(autoincrement())
+  orderId          Int                 @unique @map("order_id")
+  signerName       String              @map("signer_name") @db.VarChar(191)
+  medium           DeliveryNoteMedium
+  signedAt         DateTime            @default(now()) @map("signed_at") @db.DateTime(6)
+  recordedByUserId String              @map("recorded_by_user_id") @db.Char(36)
+  createdAt        DateTime            @default(now()) @map("created_at") @db.DateTime(6)
+  order            Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  recordedBy       User                @relation("DeliveryNoteRecordedBy", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+
+  @@map("delivery_notes")
 }
 
 model StandingOrder {
