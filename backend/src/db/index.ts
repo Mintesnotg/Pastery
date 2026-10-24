@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 // Resolve DATABASE_URL from DB_* (GoDaddy) or .env before PrismaClient reads it
 import "../config/env.js";
 
@@ -16,4 +16,4 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.__houseOfBreadPrisma = prisma;
 }
 
-export type DbClient = PrismaClient | Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
+export type DbClient = PrismaClient | Prisma.TransactionClient;
