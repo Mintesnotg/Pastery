@@ -21,7 +21,7 @@ const publicPrefixes = [
   "/openapi.json",
   "/api/auth/login",
   "/api/auth/google",
-  "/api/auth/verify-email",
+  "/api/auth/verify-otp",
   "/api/auth/resend-verification",
 ];
 

@@ -174,7 +174,7 @@ export default function UsersPage() {
     setSubmitting(true);
     try {
       const isEdit = modalMode === "edit";
-      const permissionname = isEdit ? "edit.user" : "create.user";
+      const permissionname = isEdit ? "update.user" : "create.user";
       const url = isEdit ? apiUrl(`/api/users/${selectedUser!.id}`) : apiUrl("/api/users");
       const body = isEdit
         ? { firstName: form.firstName.trim(), lastName: form.lastName.trim(), ...(form.email.trim() ? { email: form.email.trim() } : {}), roleIds: selectedRoleIds }

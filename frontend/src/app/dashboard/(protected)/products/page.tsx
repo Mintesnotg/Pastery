@@ -15,6 +15,7 @@ type Product = {
   name: string;
   description: string;
   price: number;
+  wholesale_price: number | null;
   image: string;
   is_special: boolean;
   category_id: number;
@@ -36,6 +37,7 @@ type ProductForm = {
   name: string;
   description: string;
   price: string;
+  wholesale_price: string;
   image: string;
   category_id: string;
   is_special: boolean;
@@ -48,6 +50,7 @@ const emptyForm: ProductForm = {
   name: "",
   description: "",
   price: "",
+  wholesale_price: "",
   image: "",
   category_id: "",
   is_special: false,
@@ -120,7 +123,13 @@ export default function ProductsPage() {
     if (!form.name.trim()) errors.name = "Name is required";
     if (!form.description.trim()) errors.description = "Description is required";
     if (!form.price.trim() || Number.isNaN(Number(form.price)) || Number(form.price) <= 0) {
-      errors.price = "Enter a valid price";
+      errors.price = "Enter a valid retail price";
+    }
+    if (
+      form.wholesale_price.trim() &&
+      (Number.isNaN(Number(form.wholesale_price)) || Number(form.wholesale_price) < 0)
+    ) {
+      errors.wholesale_price = "Enter a valid wholesale price";
     }
     if (!form.image.trim()) errors.image = "Image URL is required";
     else if (!isValidUrl(form.image.trim())) errors.image = "Enter a valid http(s) URL";
@@ -144,6 +153,8 @@ export default function ProductsPage() {
       name: product.name,
       description: product.description,
       price: String(product.price),
+      wholesale_price:
+        product.wholesale_price != null ? String(product.wholesale_price) : "",
       image: product.image,
       category_id: String(product.category_id),
       is_special: product.is_special,
@@ -171,6 +182,9 @@ export default function ProductsPage() {
         name: form.name.trim(),
         description: form.description.trim(),
         price: Number(form.price),
+        wholesale_price: form.wholesale_price.trim()
+          ? Number(form.wholesale_price)
+          : null,
         image: form.image.trim(),
         category_id: Number(form.category_id),
         is_special: form.is_special,
@@ -245,8 +259,16 @@ export default function ProductsPage() {
       },
       {
         accessorKey: "price",
-        header: "Price",
+        header: "Retail",
         cell: ({ row }) => `£${Number(row.original.price).toFixed(2)}`,
+      },
+      {
+        accessorKey: "wholesale_price",
+        header: "Wholesale",
+        cell: ({ row }) =>
+          row.original.wholesale_price != null
+            ? `£${Number(row.original.wholesale_price).toFixed(2)}`
+            : "—",
       },
       {
         accessorKey: "is_special",
@@ -353,15 +375,27 @@ export default function ProductsPage() {
               <p className="mt-1 text-xs text-red-600">{formErrors.description}</p>
             )}
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Price (£)</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Retail (£)</label>
               <input
                 className={fieldClass("price")}
                 value={form.price}
                 onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
               />
               {formErrors.price && <p className="mt-1 text-xs text-red-600">{formErrors.price}</p>}
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Wholesale (£)</label>
+              <input
+                className={fieldClass("wholesale_price")}
+                value={form.wholesale_price}
+                onChange={(e) => setForm((f) => ({ ...f, wholesale_price: e.target.value }))}
+                placeholder="Optional"
+              />
+              {formErrors.wholesale_price && (
+                <p className="mt-1 text-xs text-red-600">{formErrors.wholesale_price}</p>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Category</label>

@@ -146,7 +146,7 @@ export default function RolesPage() {
         ? apiUrl(`/api/roles/${selectedRole!.id}`)
         : apiUrl("/api/roles");
       
-        const permissionname = isEdit ? "edit.role" : "create.role";
+        const permissionname = isEdit ? "update.role" : "create.role";
       const res = await fetch(
         url,
         withPermission(permissionname, {

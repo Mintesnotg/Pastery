@@ -11,7 +11,9 @@ export type ProductPublicDto = {
   id: number;
   name: string;
   description: string;
+  /** Retail price (GBP). Kept as `price` for storefront compatibility. */
   price: number;
+  wholesale_price: number | null;
   image: string;
   is_special: boolean;
   category: ProductCategorySummaryDto;
@@ -33,7 +35,8 @@ export function toProductPublicDto(row: ProductRow): ProductPublicDto {
     id: row.id,
     name: row.name,
     description: row.description,
-    price: Number(row.price),
+    price: Number(row.retailPrice),
+    wholesale_price: row.wholesalePrice != null ? Number(row.wholesalePrice) : null,
     image: row.image,
     is_special: row.isSpecial,
     category: {
@@ -56,6 +59,7 @@ export type ProductWriteInput = {
   name: string;
   description: string;
   price: number;
+  wholesale_price?: number | null;
   image: string;
   category_id: number;
   is_special?: boolean;
@@ -68,7 +72,8 @@ export function toProductCreateInput(
 ): {
   name: string;
   description: string;
-  price: number;
+  retailPrice: number;
+  wholesalePrice: number | null;
   image: string;
   isSpecial: boolean;
   active: boolean;
@@ -79,7 +84,8 @@ export function toProductCreateInput(
   return {
     name: input.name,
     description: input.description,
-    price: input.price,
+    retailPrice: input.price,
+    wholesalePrice: input.wholesale_price ?? null,
     image: input.image,
     isSpecial: input.is_special ?? false,
     active: input.is_active ?? true,
@@ -100,7 +106,8 @@ export function toProductUpdateInput(
   const data: Record<string, unknown> = {};
   if (input.name !== undefined) data.name = input.name;
   if (input.description !== undefined) data.description = input.description;
-  if (input.price !== undefined) data.price = input.price;
+  if (input.price !== undefined) data.retailPrice = input.price;
+  if (input.wholesale_price !== undefined) data.wholesalePrice = input.wholesale_price;
   if (input.image !== undefined) data.image = input.image;
   if (input.is_special !== undefined) data.isSpecial = input.is_special;
   if (input.is_active !== undefined) data.active = input.is_active;

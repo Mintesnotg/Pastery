@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -22,21 +22,41 @@ type Props = {
   disabled?: boolean;
 };
 
+/** GSI allows only one initialize(); share it across mounts. */
+let gsiInitializedForClientId: string | null = null;
+let gsiCredentialHandler: ((idToken: string) => void) | null = null;
+
+function ensureGsiInitialized(clientId: string) {
+  if (!window.google?.accounts?.id) return false;
+  if (gsiInitializedForClientId === clientId) return true;
+  window.google.accounts.id.initialize({
+    client_id: clientId,
+    callback: (response: { credential?: string }) => {
+      if (response.credential) gsiCredentialHandler?.(response.credential);
+    },
+    ux_mode: "popup",
+  });
+  gsiInitializedForClientId = clientId;
+  return true;
+}
+
 export function GoogleSignInButton({ onCredential, disabled }: Props) {
   const btnRef = useRef<HTMLDivElement>(null);
+  const renderedRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [scriptError, setScriptError] = useState("");
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
-  const init = useCallback(() => {
+  useEffect(() => {
+    gsiCredentialHandler = (token) => {
+      void onCredential(token);
+    };
+  }, [onCredential]);
+
+  const setupButton = () => {
     if (!clientId || !btnRef.current || !window.google?.accounts?.id) return;
-    window.google.accounts.id.initialize({
-      client_id: clientId,
-      callback: (response: { credential?: string }) => {
-        if (response.credential) void onCredential(response.credential);
-      },
-      ux_mode: "popup",
-    });
+    if (!ensureGsiInitialized(clientId)) return;
+    if (renderedRef.current) return;
     btnRef.current.innerHTML = "";
     window.google.accounts.id.renderButton(btnRef.current, {
       theme: "outline",
@@ -45,12 +65,14 @@ export function GoogleSignInButton({ onCredential, disabled }: Props) {
       text: "continue_with",
       shape: "pill",
     });
+    renderedRef.current = true;
     setReady(true);
-  }, [clientId, onCredential]);
+  };
 
   useEffect(() => {
-    if (window.google?.accounts?.id) init();
-  }, [init]);
+    setupButton();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setup once when client ready
+  }, [clientId]);
 
   if (!clientId) {
     return (
@@ -65,7 +87,7 @@ export function GoogleSignInButton({ onCredential, disabled }: Props) {
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
-        onLoad={() => init()}
+        onLoad={() => setupButton()}
         onError={() => setScriptError("Failed to load Google sign-in")}
       />
       <div className="flex flex-col items-center gap-2">

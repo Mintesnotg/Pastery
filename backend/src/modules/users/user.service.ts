@@ -135,7 +135,11 @@ export async function createNewUser(
   let verificationSent = false;
   if (requireEmailVerification) {
     const { issueEmailVerification } = await import("../authentication/email-verification.service.js");
-    const issued = await issueEmailVerification(created.user.id, created.user.email);
+    const issued = await issueEmailVerification(
+      created.user.id,
+      created.user.email,
+      created.user.firstName || undefined,
+    );
     verificationSent = issued.sent.ok;
   }
 

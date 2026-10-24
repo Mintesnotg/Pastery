@@ -6,16 +6,29 @@ export type StoreProduct = {
   name: string;
   description: string;
   price: number;
+  wholesalePrice: number | null;
   image: string;
   isSpecial: boolean;
   category: { id: number; name: string; description: string | null };
 };
+
+/** Unit price for display/cart given retail vs wholesale mode. */
+export function effectiveUnitPrice(
+  product: Pick<StoreProduct, "price" | "wholesalePrice">,
+  mode: "retail" | "wholesale",
+): number {
+  if (mode === "wholesale" && product.wholesalePrice != null) {
+    return product.wholesalePrice;
+  }
+  return product.price;
+}
 
 function mapApiProduct(r: {
   id: number;
   name: string;
   description: string;
   price: number;
+  wholesale_price?: number | null;
   image: string;
   is_special: boolean;
   category: { id: number; name: string; description: string | null };
@@ -25,6 +38,10 @@ function mapApiProduct(r: {
     name: r.name,
     description: r.description,
     price: Number(r.price),
+    wholesalePrice:
+      r.wholesale_price != null && r.wholesale_price !== undefined
+        ? Number(r.wholesale_price)
+        : null,
     image: r.image,
     isSpecial: Boolean(r.is_special),
     category: r.category,
@@ -68,6 +85,7 @@ export async function getProducts(query: {
     name: p.name,
     description: p.description,
     price: p.price,
+    wholesalePrice: null,
     image: p.image,
     isSpecial: p.featured,
     category: { id: 0, name: p.category, description: null },

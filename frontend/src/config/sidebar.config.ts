@@ -1,107 +1,186 @@
-import {
-  FileText,
-  FolderTree,
-  Image,
-  LockKeyhole,
-  Package,
-  ShoppingBag,
-  ShoppingCart,
-  Shield,
-  Tags,
-  User,
-  UserCog,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
-
-export type SidebarItem = {
-  name: string;
-  route?: string;
-  icon: LucideIcon;
-  permission: string;
-  children?: SidebarItem[];
-};
-
-export const sidebarConfig: SidebarItem[] = [
-  {
-    name: "Customer",
-    icon: ShoppingBag,
-    permission: "view.profile",
-    children: [
-      {
-        name: "View Orders",
-        route: "/my-orders",
-        icon: Package,
-        permission: "create.order",
-      },
-      {
-        name: "Place Order",
-        route: "/place-order",
-        icon: ShoppingCart,
-        permission: "create.order",
-      },
-      {
-        name: "Profile",
-        route: "/profile",
-        icon: User,
-        permission: "view.profile",
-      },
-    ],
-  },
-  {
-    name: "Account Management",
-    icon: Shield,
-    permission: "view.account_management",
-    children: [
-      {
-        name: "Users",
-        route: "/users",
-        icon: Users,
-        permission: "view.users",
-      },
-      {
-        name: "Roles",
-        route: "/roles",
-        icon: UserCog,
-        permission: "view.roles",
-      },
-      {
-        name: "Permissions",
-        route: "/permissions",
-        icon: LockKeyhole,
-        permission: "view.permissions",
-      },
-    ],
-  },
-  {
-    name: "Content Management",
-    icon: FolderTree,
-    permission: "view.content_management",
-    children: [
-      {
-        name: "Banners",
-        route: "/banner",
-        icon: Image,
-        permission: "view.banner",
-      },
-      {
-        name: "Products",
-        route: "/products",
-        icon: Package,
-        permission: "view.product",
-      },
-      {
-        name: "Categories",
-        route: "/product-categories",
-        icon: Tags,
-        permission: "view.product_category",
-      },
-      {
-        name: "Home page",
-        icon: FileText,
-        route: "/docs/categories",
-        permission: "view.home_content",
-      },
-    ],
-  },
-];
+import {
+  Building2,
+  ClipboardList,
+  Ellipsis,
+  Factory,
+  FileText,
+  FolderTree,
+  Image,
+  LockKeyhole,
+  Package,
+  RefreshCw,
+  Repeat,
+  Settings,
+  ShoppingBag,
+  ShoppingCart,
+  Shield,
+  Store,
+  Tags,
+  User,
+  UserCog,
+  Users,
+  FolderOpen,
+  Receipt,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
+
+export type SidebarItem = {
+  name: string;
+  route?: string;
+  icon: LucideIcon;
+  permission: string;
+  children?: SidebarItem[];
+};
+
+export const sidebarConfig: SidebarItem[] = [
+  {
+    name: "Customer",
+    icon: ShoppingBag,
+    permission: "view.profile",
+    children: [
+      {
+        name: "View Orders",
+        route: "/my-orders",
+        icon: Package,
+        permission: "create.order",
+      },
+      {
+        name: "Place Order",
+        route: "/place-order",
+        icon: ShoppingCart,
+        permission: "create.order",
+      },
+      {
+        name: "Profile",
+        route: "/profile",
+        icon: User,
+        permission: "view.profile",
+      },
+      {
+        name: "Business account",
+        route: "/business-account",
+        icon: Building2,
+        permission: "view.profile",
+      },
+      {
+        name: "Standing orders",
+        route: "/standing-orders",
+        icon: Repeat,
+        permission: "create.standing_order",
+      },
+      {
+        name: "My invoices",
+        route: "/my-invoices",
+        icon: Receipt,
+        permission: "view.invoices",
+      },
+    ],
+  },
+  {
+    name: "Account Management",
+    icon: Shield,
+    permission: "view.account_management",
+    children: [
+      {
+        name: "Users",
+        route: "/users",
+        icon: Users,
+        permission: "view.users",
+      },
+      {
+        name: "Roles",
+        route: "/roles",
+        icon: UserCog,
+        permission: "view.roles",
+      },
+      {
+        name: "Permissions",
+        route: "/permissions",
+        icon: LockKeyhole,
+        permission: "view.permissions",
+      },
+    ],
+  },
+  {
+    name: "Operational",
+    icon: ClipboardList,
+    permission: "view.operational",
+    children: [
+      {
+        name: "Cafe accounts",
+        route: "/business-accounts",
+        icon: Store,
+        permission: "view.business_accounts",
+      },
+      {
+        name: "Production",
+        route: "/production",
+        icon: Factory,
+        permission: "view.production",
+      },
+      {
+        name: "Standing orders",
+        route: "/standing-orders-admin",
+        icon: RefreshCw,
+        permission: "manage.standing_orders",
+      },
+      {
+        name: "Invoices",
+        route: "/invoices",
+        icon: Receipt,
+        permission: "create.invoice",
+      },
+      {
+        name: "Collections",
+        route: "/collections",
+        icon: Wallet,
+        permission: "manage.collections",
+      },
+    ],
+  },
+  {
+    name: "Content Management",
+    icon: FolderTree,
+    permission: "view.content_management",
+    children: [
+      {
+        name: "Banners",
+        route: "/banner",
+        icon: Image,
+        permission: "view.banner",
+      },
+      {
+        name: "Products",
+        route: "/products",
+        icon: Package,
+        permission: "view.product",
+      },
+      {
+        name: "Categories",
+        route: "/product-categories",
+        icon: Tags,
+        permission: "view.product_category",
+      },
+      {
+        name: "Home page",
+        icon: FileText,
+        route: "/docs/categories",
+        permission: "view.home_content",
+      },
+    ],
+  },
+  {
+    name: "Others",
+    icon: FolderOpen,
+    permission: "view.others",
+    children: [
+      {
+        name: "Settings",
+        route: "/settings",
+        icon: Settings,
+        permission: "manage.settings",
+      },
+    ],
+  },
+];

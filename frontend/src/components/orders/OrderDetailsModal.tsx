@@ -149,11 +149,47 @@ export function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModa
             <PriceSummary subtotal={subtotal} total={order.total} />
           </DetailSection>
 
-          <DetailSection title="Collection">
-            <InfoRow label="Pickup date" value={order.pickupDate} />
-            <InfoRow label="Pickup time" value={order.pickupTime} />
+          <DetailSection title="Fulfillment">
+            {order.channel ? (
+              <InfoRow label="Channel" value={order.channel} />
+            ) : null}
+            <InfoRow
+              label="Type"
+              value={order.fulfillmentType === "delivery" ? "Delivery" : "Pickup"}
+            />
+            <InfoRow label="Date" value={order.pickupDate} />
+            <InfoRow label="Time" value={order.pickupTime} />
+            {order.fulfillmentType === "delivery" && order.deliveryAddress ? (
+              <InfoRow label="Address" value={order.deliveryAddress} />
+            ) : null}
+            {order.paymentTerms ? (
+              <InfoRow
+                label="Payment terms"
+                value={
+                  order.paymentTerms === "prepaid"
+                    ? order.prepaidPaidAt
+                      ? "Prepaid (paid)"
+                      : "Prepaid (unpaid)"
+                    : "Credit"
+                }
+              />
+            ) : null}
             {order.notes ? <InfoRow label="Notes" value={order.notes} /> : null}
           </DetailSection>
+
+          {order.deliveryNote ? (
+            <DetailSection title="Delivery note">
+              <InfoRow label="Signer" value={order.deliveryNote.signerName} />
+              <InfoRow
+                label="Medium"
+                value={order.deliveryNote.medium === "paper" ? "Paper" : "Digital"}
+              />
+              <InfoRow
+                label="Signed"
+                value={formatOrderDateTime(order.deliveryNote.signedAt)}
+              />
+            </DetailSection>
+          ) : null}
         </div>
       ) : null}
     </Modal>
