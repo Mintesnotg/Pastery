@@ -43,6 +43,26 @@ type ReviewForm = {
 
 const PAGE_SIZE = 20;
 
+function approvalStatusBadge(status: BusinessAccount["approval_status"]) {
+  const styles: Record<BusinessAccount["approval_status"], string> = {
+    approved: "bg-emerald-50 text-emerald-800 ring-emerald-600/20",
+    pending: "bg-amber-50 text-amber-800 ring-amber-600/20",
+    rejected: "bg-rose-50 text-rose-800 ring-rose-600/20",
+  };
+  const labels: Record<BusinessAccount["approval_status"], string> = {
+    approved: "Approved",
+    pending: "Pending",
+    rejected: "Rejected",
+  };
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${styles[status]}`}
+    >
+      {labels[status]}
+    </span>
+  );
+}
+
 const emptyReview: ReviewForm = {
   approval_status: "approved",
   credit_tier: "0",
@@ -188,9 +208,7 @@ export default function BusinessAccountsAdminPage() {
       {
         accessorKey: "approval_status",
         header: "Status",
-        cell: ({ row }) => (
-          <span className="capitalize">{row.original.approval_status}</span>
-        ),
+        cell: ({ row }) => approvalStatusBadge(row.original.approval_status),
       },
       {
         accessorKey: "credit_tier",

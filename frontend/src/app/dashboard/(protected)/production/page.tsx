@@ -1,13 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ChevronRight,
-  Factory,
-  Loader2,
-  RefreshCw,
-  X,
-} from "lucide-react";
+import { Factory, Loader2, RefreshCw } from "lucide-react";
 import { DeliveryCompleteModal } from "@/components/orders/DeliveryCompleteModal";
 import { Toast, useToast } from "@/components/ui/Toast";
 import { apiUrl, withPermission } from "@/lib/api";
@@ -19,20 +13,31 @@ import {
   type Order,
 } from "@/lib/orders";
 
-const BAKE_COLUMNS = [
-  { status: "pending", label: "Pending" },
-  { status: "confirmed", label: "Confirmed" },
-  { status: "preparing", label: "Preparing" },
-  { status: "ready", label: "Ready" },
+const STATUS_PIPELINE = [
+  "pending",
+  "confirmed",
+  "preparing",
+  "ready",
+  "completed",
 ] as const;
 
-const NEXT_STATUS: Record<string, string | null> = {
-  pending: "confirmed",
-  confirmed: "preparing",
-  preparing: "ready",
-  ready: "completed",
-  completed: null,
-  cancelled: null,
+const STATUS_FILTER_OPTIONS = [
+  { value: "all", label: "All" },
+  { value: "pending", label: "Pending" },
+  { value: "confirmed", label: "Confirmed" },
+  { value: "preparing", label: "Preparing" },
+  { value: "ready", label: "Ready" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+] as const;
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Pending",
+  confirmed: "Confirmed",
+  preparing: "Preparing",
+  ready: "Ready",
+  completed: "Completed",
+  cancelled: "Cancelled",
 };
 
 function todayYmd() {
@@ -40,23 +45,35 @@ function todayYmd() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
+function forwardStatuses(current: string): string[] {
+  const i = STATUS_PIPELINE.indexOf(current as (typeof STATUS_PIPELINE)[number]);
+  if (i < 0 || current === "cancelled" || current === "completed") return [];
+  return STATUS_PIPELINE.slice(i + 1) as string[];
+}
+
 function itemSummary(order: Order) {
   const items = order.items ?? [];
   if (!items.length) return "No items";
-  return items
-    .map((i) => `${i.quantity}× ${i.productName}`)
-    .slice(0, 4)
-    .join(", ") + (items.length > 4 ? ` +${items.length - 4}` : "");
+  return (
+    items
+      .map((i) => `${i.quantity}× ${i.productName}`)
+      .slice(0, 4)
+      .join(", ") + (items.length > 4 ? ` +${items.length - 4}` : "")
+  );
+}
+
+function isTerminal(status: string) {
+  return status === "completed" || status === "cancelled";
 }
 
 export default function ProductionBoardPage() {
   const { toast, showToast, dismiss } = useToast();
   const [date, setDate] = useState(todayYmd);
   const [channel, setChannel] = useState<"all" | "retail" | "wholesale">("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<number | null>(null);
-  const [showDone, setShowDone] = useState(false);
   const [completeTarget, setCompleteTarget] = useState<Order | null>(null);
 
   const load = useCallback(async () => {
@@ -85,20 +102,10 @@ export default function ProductionBoardPage() {
     void load();
   }, [load]);
 
-  const byStatus = useMemo(() => {
-    const map = new Map<string, Order[]>();
-    for (const col of BAKE_COLUMNS) map.set(col.status, []);
-    map.set("completed", []);
-    map.set("cancelled", []);
-    for (const order of orders) {
-      if (map.has(order.status)) {
-        map.get(order.status)!.push(order);
-      } else {
-        map.get("pending")!.push(order);
-      }
-    }
-    return map;
-  }, [orders]);
+  const filteredOrders = useMemo(() => {
+    if (statusFilter === "all") return orders;
+    return orders.filter((o) => o.status === statusFilter);
+  }, [orders, statusFilter]);
 
   const setStatus = async (
     order: Order,
@@ -124,7 +131,7 @@ export default function ProductionBoardPage() {
         showToast((data as { error?: string }).error ?? "Update failed", "error");
         return;
       }
-      showToast(`Order ${orderNumber(order.id)} → ${status}`, "success");
+      showToast(`Order ${orderNumber(order.id)} → ${STATUS_LABELS[status] ?? status}`, "success");
       setCompleteTarget(null);
       await load();
     } finally {
@@ -132,78 +139,14 @@ export default function ProductionBoardPage() {
     }
   };
 
-  const requestAdvance = (order: Order) => {
-    const next = NEXT_STATUS[order.status] ?? null;
-    if (!next) return;
+  const requestStatusChange = (order: Order, next: string) => {
+    if (next === order.status) return;
     if (next === "completed" && order.fulfillmentType === "delivery" && !order.deliveryNote) {
       setCompleteTarget(order);
       return;
     }
     void setStatus(order, next);
   };
-
-  const renderCard = (order: Order) => {
-    const next = NEXT_STATUS[order.status] ?? null;
-    const busy = processingId === order.id;
-    return (
-      <article
-        key={order.id}
-        className="rounded-xl border border-crust/10 bg-white p-3 shadow-sm"
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="font-semibold text-crust-deep">{order.customerName}</p>
-            <p className="text-xs text-crust/55">{orderNumber(order.id)}</p>
-          </div>
-          <div className="flex flex-wrap justify-end gap-1">
-            <span className="rounded-full bg-peach/70 px-2 py-0.5 text-[10px] font-semibold uppercase text-crust">
-              {order.channel ?? "retail"}
-            </span>
-            <span className="rounded-full bg-cream px-2 py-0.5 text-[10px] font-semibold uppercase text-crust/80">
-              {order.fulfillmentType ?? "pickup"}
-            </span>
-          </div>
-        </div>
-        <p className="mt-2 text-sm text-crust/80">
-          <span className="font-medium">{order.pickupTime}</span>
-          {" · "}
-          {formatMoney(order.total)}
-        </p>
-        <p className="mt-1 line-clamp-2 text-xs text-crust/60">{itemSummary(order)}</p>
-        {order.fulfillmentType === "delivery" && order.deliveryAddress ? (
-          <p className="mt-1 text-xs text-crust/50">
-            {truncateAddress(order.deliveryAddress, 56)}
-          </p>
-        ) : null}
-        {order.status !== "completed" && order.status !== "cancelled" ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {next ? (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => requestAdvance(order)}
-                className="inline-flex items-center gap-1 rounded-lg bg-crust px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-crust-deep disabled:opacity-60"
-              >
-                {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <ChevronRight className="h-3 w-3" />}
-                Advance
-              </button>
-            ) : null}
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void setStatus(order, "cancelled")}
-              className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
-            >
-              <X className="h-3 w-3" />
-              Cancel
-            </button>
-          </div>
-        ) : null}
-      </article>
-    );
-  };
-
-  const doneOrders = [...(byStatus.get("completed") ?? []), ...(byStatus.get("cancelled") ?? [])];
 
   return (
     <section className="space-y-6">
@@ -231,7 +174,7 @@ export default function ProductionBoardPage() {
             <div>
               <h1 className="font-display text-2xl font-bold text-crust-deep">Production</h1>
               <p className="mt-1 text-sm text-crust/70">
-                Bake board by fulfillment date. Advance orders through the kitchen pipeline.
+                Orders by fulfillment date. Update status with the dropdown (forward only).
               </p>
             </div>
           </div>
@@ -268,6 +211,20 @@ export default function ProductionBoardPage() {
               <option value="wholesale">Wholesale</option>
             </select>
           </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Status</label>
+            <select
+              className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              {STATUS_FILTER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -275,57 +232,103 @@ export default function ProductionBoardPage() {
         <div className="flex justify-center rounded-2xl border border-crust/10 bg-white py-16 shadow-sm">
           <Loader2 className="h-7 w-7 animate-spin text-crust" />
         </div>
-      ) : orders.length === 0 ? (
+      ) : filteredOrders.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-crust/20 bg-cream/40 px-4 py-12 text-center text-sm text-crust/70">
           No orders for {date}
-          {channel !== "all" ? ` (${channel})` : ""}.
+          {channel !== "all" ? ` (${channel})` : ""}
+          {statusFilter !== "all" ? ` · ${STATUS_LABELS[statusFilter] ?? statusFilter}` : ""}.
         </p>
       ) : (
-        <>
-          <div className="grid gap-4 xl:grid-cols-4 lg:grid-cols-2">
-            {BAKE_COLUMNS.map((col) => {
-              const list = byStatus.get(col.status) ?? [];
-              return (
-                <div
-                  key={col.status}
-                  className="flex min-h-48 flex-col rounded-2xl border border-crust/10 bg-cream/30 p-3"
-                >
-                  <div className="mb-3 flex items-center justify-between px-1">
-                    <h2 className="text-sm font-semibold text-crust-deep">{col.label}</h2>
-                    <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-crust/70">
-                      {list.length}
-                    </span>
-                  </div>
-                  <div className="flex flex-1 flex-col gap-2">
-                    {list.length === 0 ? (
-                      <p className="px-1 text-xs text-crust/45">Empty</p>
-                    ) : (
-                      list.map(renderCard)
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {doneOrders.length > 0 ? (
-            <div className="rounded-2xl border border-crust/10 bg-white p-4 shadow-sm">
-              <button
-                type="button"
-                className="flex w-full items-center justify-between text-left text-sm font-semibold text-crust-deep"
-                onClick={() => setShowDone((v) => !v)}
-              >
-                Completed & cancelled ({doneOrders.length})
-                <span className="text-xs font-normal text-crust/50">{showDone ? "Hide" : "Show"}</span>
-              </button>
-              {showDone ? (
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {doneOrders.map(renderCard)}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </>
+        <div className="overflow-x-auto rounded-2xl border border-crust/10 bg-white shadow-sm">
+          <table className="min-w-full text-left text-sm">
+            <thead className="border-b border-crust/10 bg-cream/40 text-xs font-semibold uppercase tracking-wide text-crust/70">
+              <tr>
+                <th className="px-4 py-3">Order</th>
+                <th className="px-4 py-3">Customer</th>
+                <th className="px-4 py-3">Channel</th>
+                <th className="px-4 py-3">Fulfillment</th>
+                <th className="px-4 py-3">Time</th>
+                <th className="px-4 py-3">Total</th>
+                <th className="px-4 py-3">Items</th>
+                <th className="px-4 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-crust/5">
+              {filteredOrders.map((order) => {
+                const busy = processingId === order.id;
+                const options = [...forwardStatuses(order.status), "cancelled"];
+                return (
+                  <tr key={order.id} className="align-top hover:bg-cream/20">
+                    <td className="whitespace-nowrap px-4 py-3 font-medium text-crust-deep">
+                      {orderNumber(order.id)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-crust-deep">{order.customerName}</p>
+                      {order.fulfillmentType === "delivery" && order.deliveryAddress ? (
+                        <p className="mt-0.5 text-xs text-crust/50">
+                          {truncateAddress(order.deliveryAddress, 48)}
+                        </p>
+                      ) : null}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 capitalize text-crust/80">
+                      {order.channel ?? "retail"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 capitalize text-crust/80">
+                      {order.fulfillmentType ?? "pickup"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-crust/80">
+                      {order.pickupTime}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-crust/80">
+                      {formatMoney(order.total)}
+                    </td>
+                    <td className="max-w-xs px-4 py-3 text-xs text-crust/65">
+                      {itemSummary(order)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isTerminal(order.status) ? (
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            order.status === "completed"
+                              ? "bg-emerald-50 text-emerald-800"
+                              : "bg-rose-50 text-rose-800"
+                          }`}
+                        >
+                          {STATUS_LABELS[order.status] ?? order.status}
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <select
+                            className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-crust disabled:opacity-60"
+                            value={order.status}
+                            disabled={busy}
+                            onChange={(e) => {
+                              const next = e.target.value;
+                              e.target.value = order.status;
+                              requestStatusChange(order, next);
+                            }}
+                          >
+                            <option value={order.status}>
+                              {STATUS_LABELS[order.status] ?? order.status}
+                            </option>
+                            {options.map((s) => (
+                              <option key={s} value={s}>
+                                {STATUS_LABELS[s] ?? s}
+                              </option>
+                            ))}
+                          </select>
+                          {busy ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-crust/50" />
+                          ) : null}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

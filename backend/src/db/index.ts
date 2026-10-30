@@ -16,4 +16,4 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.__houseOfBreadPrisma = prisma;
 }
 
-export type DbClient = PrismaClient | Prisma.TransactionClient;
+export type DbClient = PrismaClient | Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];

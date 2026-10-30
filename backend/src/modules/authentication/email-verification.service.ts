@@ -1,131 +1,178 @@
-import crypto from "node:crypto";
+import jwt, { type SignOptions } from "jsonwebtoken";
 import { prisma } from "../../db/index.js";
 import { env } from "../../config/env.js";
-import { sendVerificationEmail } from "../../shared/lib/mailer.js";
-import { findActiveUserByEmail } from "../users/user.repository.js";
+import { hashPassword } from "../../shared/lib/auth.js";
+import { sendRegistrationLinkEmail } from "../../shared/lib/mailer.js";
+import {
+  createUser,
+  findActiveUserByEmail,
+  findUserByEmail,
+  replaceUserRoles,
+} from "../users/user.repository.js";
+import { buildSessionForUser, findCustomerRoleId } from "./google-auth.service.js";
 
-const OTP_TTL_MS = 30 * 60 * 1000;
-const MAX_ATTEMPTS = 5;
+const REG_TOKEN_TTL = "30m";
 const RESEND_COOLDOWN_MS = 60_000;
-const MAX_RESENDS_PER_HOUR = 5;
 
-export function generateOtpCode(): string {
-  return String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
-}
+export type RegistrationTokenPayload = {
+  purpose: "register";
+  email: string;
+  firstName: string;
+  lastName: string;
+  passwordHash: string;
+  passwordSalt: string;
+};
 
-export function hashOtp(otp: string): string {
-  return crypto.createHmac("sha256", env.jwtSecret).update(otp).digest("hex");
-}
-
-export function otpsMatch(rawOtp: string, otpHash: string): boolean {
-  const a = Buffer.from(hashOtp(rawOtp), "utf8");
-  const b = Buffer.from(otpHash, "utf8");
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
-}
-
-const resendCooldown = new Map<string, number>();
+const resendTimestamps = new Map<string, number>();
 
 export function canResendVerification(email: string): boolean {
   const key = email.trim().toLowerCase();
-  const last = resendCooldown.get(key) ?? 0;
+  const last = resendTimestamps.get(key) ?? 0;
   if (Date.now() - last < RESEND_COOLDOWN_MS) return false;
-  resendCooldown.set(key, Date.now());
+  resendTimestamps.set(key, Date.now());
   return true;
 }
 
 /** Test helper: clear in-memory resend cooldown. */
-export function clearResendCooldownForTests() {
-  resendCooldown.clear();
+export function clearResendTimestampsForTests() {
+  resendTimestamps.clear();
 }
 
-async function countRecentIssues(userId: string): Promise<number> {
-  const since = new Date(Date.now() - 60 * 60 * 1000);
-  return prisma.emailVerificationOtp.count({
-    where: { userId, createdAt: { gte: since } },
-  });
+function isPasswordComplex(password: string): boolean {
+  return /[a-zA-Z]/.test(password) && /\d/.test(password) && /[^a-zA-Z\d]/.test(password);
 }
 
-export async function issueEmailVerification(
-  userId: string,
-  email: string,
-  name?: string,
-): Promise<{ sent: { ok: true } | { ok: false; error: string }; rateLimited?: boolean }> {
-  const recent = await countRecentIssues(userId);
-  if (recent >= MAX_RESENDS_PER_HOUR) {
-    return { sent: { ok: false, error: "Too many verification emails. Try again later." }, rateLimited: true };
-  }
-
-  const otp = generateOtpCode();
-  const otpHash = hashOtp(otp);
-  const expiresAt = new Date(Date.now() + OTP_TTL_MS);
-
-  // Soft-invalidate prior OTPs so hourly resend history remains countable
-  await prisma.$transaction(async (tx) => {
-    await tx.emailVerificationOtp.updateMany({
-      where: { userId, consumedAt: null },
-      data: { consumedAt: new Date() },
-    });
-    await tx.emailVerificationOtp.create({
-      data: { userId, otpHash, expiresAt, attemptCount: 0 },
-    });
-  });
-
-  const sent = await sendVerificationEmail(email, otp, name);
-  return { sent };
+export function signRegistrationToken(
+  payload: Omit<RegistrationTokenPayload, "purpose">,
+): string {
+  const body: RegistrationTokenPayload = { purpose: "register", ...payload };
+  const options: SignOptions = { expiresIn: REG_TOKEN_TTL };
+  return jwt.sign(body, env.jwtSecret, options);
 }
 
-export type VerifyOtpError = "invalid" | "expired" | "locked" | "already_verified";
-
-export async function verifyEmailOtp(
-  email: string,
-  code: string,
-): Promise<{ userId: string } | { error: VerifyOtpError }> {
-  const normalized = email.trim().toLowerCase();
-  const user = await findActiveUserByEmail(normalized);
-  if (!user) return { error: "invalid" };
-  if (user.emailVerifiedAt) return { error: "already_verified" };
-
-  const row = await prisma.emailVerificationOtp.findFirst({
-    where: { userId: user.id, consumedAt: null },
-    orderBy: { createdAt: "desc" },
-  });
-
-  if (!row) return { error: "invalid" };
-
-  if (row.attemptCount >= MAX_ATTEMPTS) {
-    return { error: "locked" };
-  }
-
-  if (row.expiresAt.getTime() < Date.now()) {
-    return { error: "expired" };
-  }
-
-  if (!otpsMatch(code, row.otpHash)) {
-    const updated = await prisma.emailVerificationOtp.update({
-      where: { id: row.id },
-      data: { attemptCount: { increment: 1 } },
-    });
-    if (updated.attemptCount >= MAX_ATTEMPTS) {
-      await prisma.emailVerificationOtp.update({
-        where: { id: row.id },
-        data: { consumedAt: new Date() },
-      });
-      return { error: "locked" };
+export function verifyRegistrationToken(
+  token: string,
+): RegistrationTokenPayload | { error: "invalid" | "expired" } {
+  try {
+    const decoded = jwt.verify(token, env.jwtSecret) as RegistrationTokenPayload;
+    if (decoded.purpose !== "register" || !decoded.email || !decoded.passwordHash) {
+      return { error: "invalid" };
     }
+    return decoded;
+  } catch (err) {
+    if ((err as Error).name === "TokenExpiredError") return { error: "expired" };
     return { error: "invalid" };
   }
+}
 
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: user.id },
-      data: { emailVerifiedAt: new Date() },
-    });
-    await tx.emailVerificationOtp.update({
-      where: { id: row.id },
-      data: { consumedAt: new Date() },
-    });
+export async function sendRegistrationLink(
+  email: string,
+  token: string,
+  name?: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const verifyUrl = `${env.frontendUrl.replace(/\/$/, "")}/verify?token=${encodeURIComponent(token)}`;
+  return sendRegistrationLinkEmail(email, verifyUrl, name);
+}
+
+export type StartRegistrationResult =
+  | { ok: true; email: string }
+  | { conflict: true }
+  | { weakPassword: true }
+  | { invalid: true }
+  | { sendFailed: true; error: string };
+
+/**
+ * Public register / resend: validate, ensure email free, email a signed link.
+ * Does not insert into `users` until the link is verified.
+ */
+export async function startPublicRegistration(input: {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}): Promise<StartRegistrationResult> {
+  const email = input.email.trim().toLowerCase();
+  const firstName = input.firstName.trim();
+  const lastName = input.lastName.trim();
+  const password = input.password;
+
+  if (!email || !password || !firstName || !lastName) return { invalid: true };
+  if (password.length < 8) return { invalid: true };
+  if (!isPasswordComplex(password)) return { weakPassword: true };
+
+  const existing = await findUserByEmail(email);
+  if (existing) return { conflict: true };
+
+  const hashed = hashPassword(password);
+  const token = signRegistrationToken({
+    email,
+    firstName,
+    lastName,
+    passwordHash: hashed.hash,
+    passwordSalt: hashed.salt,
   });
 
-  return { userId: user.id };
+  const sent = await sendRegistrationLink(email, token, firstName);
+  if (!sent.ok) {
+    return { sendFailed: true, error: sent.error || "Failed to send verification email" };
+  }
+
+  return { ok: true, email };
+}
+
+export type CompleteRegistrationResult =
+  | { ok: true; session: Awaited<ReturnType<typeof buildSessionForUser>>; alreadyExisted: boolean }
+  | { error: "invalid" | "expired" | "customer_role_missing" };
+
+export async function completeRegistrationFromToken(
+  token: string,
+): Promise<CompleteRegistrationResult> {
+  const payload = verifyRegistrationToken(token);
+  if ("error" in payload) return { error: payload.error };
+
+  const email = payload.email.trim().toLowerCase();
+  const existing = await findActiveUserByEmail(email);
+  if (existing) {
+    const session = await buildSessionForUser(existing.id, existing.email);
+    return { ok: true, session, alreadyExisted: true };
+  }
+
+  const customerRoleId = await findCustomerRoleId();
+  if (customerRoleId == null) return { error: "customer_role_missing" };
+
+  const fullName = `${payload.firstName} ${payload.lastName}`.trim();
+
+  try {
+    const created = await prisma.$transaction(async (tx) => {
+      const user = await createUser(
+        {
+          email,
+          passwordHash: payload.passwordHash,
+          passwordSalt: payload.passwordSalt,
+          firstName: payload.firstName,
+          lastName: payload.lastName,
+          fullName,
+          active: true,
+          emailVerifiedAt: new Date(),
+        },
+        tx,
+      );
+      if (!user) return null;
+      await replaceUserRoles(user.id, [customerRoleId], tx);
+      return user;
+    });
+
+    if (!created) return { error: "invalid" };
+
+    const session = await buildSessionForUser(created.id, created.email);
+    return { ok: true, session, alreadyExisted: false };
+  } catch (err) {
+    const existingAfter = await findActiveUserByEmail(email);
+    if (existingAfter) {
+      const session = await buildSessionForUser(existingAfter.id, existingAfter.email);
+      return { ok: true, session, alreadyExisted: true };
+    }
+    console.error("[registration] complete failed:", err);
+    return { error: "invalid" };
+  }
 }

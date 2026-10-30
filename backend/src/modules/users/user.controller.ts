@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { sendError } from "../../shared/utils/response.js";
 import { readStringId } from "../../shared/utils/requestParams.js";
 import { prisma } from "../../db/index.js";
+import { startPublicRegistration } from "../authentication/email-verification.service.js";
 import {
   createNewUser,
   deleteUser,
@@ -23,37 +24,54 @@ export async function createUserController(req: Request, res: Response) {
   if (!parsed.success) return sendError(res, 400, "Invalid user payload");
 
   const isPublicRegistration = !req.auth;
-  let roleIds = parsed.data.roleIds;
 
   if (isPublicRegistration) {
-    const customer = await prisma.role.findUnique({ where: { key: "customer" } });
-    if (!customer) return sendError(res, 500, "Customer role is not configured");
+    const result = await startPublicRegistration({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      firstName: parsed.data.firstName,
+      lastName: parsed.data.lastName,
+    });
+
+    if ("invalid" in result) return sendError(res, 400, "Invalid user payload");
+    if ("weakPassword" in result) {
+      return sendError(
+        res,
+        400,
+        "Password must contain at least one letter, one number, and one special character",
+      );
+    }
+    if ("conflict" in result) return sendError(res, 409, "User already exists");
+    if ("sendFailed" in result) {
+      return sendError(res, 503, result.error || "Failed to send verification email");
+    }
+
+    return res.status(201).json({
+      success: true,
+      requiresVerification: true,
+      email: result.email,
+      message:
+        "Check your email for a verification link. Your account is created only after you confirm.",
+    });
+  }
+
+  const customer = await prisma.role.findUnique({ where: { key: "customer" } });
+  let roleIds = parsed.data.roleIds;
+  if (!roleIds?.length && customer) {
     roleIds = [customer.id];
   }
 
-  const payload = { ...parsed.data, roleIds };
-  const created = await createNewUser(payload, {
-    requireEmailVerification: isPublicRegistration,
-  });
+  const created = await createNewUser({ ...parsed.data, roleIds });
   if (!created) return sendError(res, 400, "Invalid user payload");
-  if ("weakPassword" in created)
+  if ("weakPassword" in created) {
     return sendError(
       res,
       400,
       "Password must contain at least one letter, one number, and one special character",
     );
+  }
   if ("conflict" in created) return sendError(res, 409, "User already exists");
   if ("invalidRoleIds" in created) return sendError(res, 400, "Invalid role IDs");
-
-  if (isPublicRegistration) {
-    return res.status(201).json({
-      success: true,
-      requiresVerification: true,
-      verificationSent: created.verificationSent ?? false,
-      message: "Account created. Enter the 6-digit code we emailed you to verify before signing in.",
-      email: created.user.email,
-    });
-  }
 
   res.status(201).json(created.user);
 }

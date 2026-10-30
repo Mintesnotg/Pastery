@@ -79,11 +79,11 @@ export async function getUser(id: string) {
   return findUserById(id);
 }
 
+/** Admin / authenticated create — inserts immediately (no verify link). */
 export async function createNewUser(
   input: CreateUserInput,
-  options: { requireEmailVerification?: boolean } = {},
 ): Promise<
-  | { user: UserDTO; verificationSent?: boolean }
+  | { user: UserDTO }
   | { conflict: true }
   | { invalidRoleIds: true }
   | { weakPassword: true }
@@ -94,7 +94,6 @@ export async function createNewUser(
   const firstName = input.firstName.trim();
   const lastName = input.lastName.trim();
   const roleIds = [...new Set(input.roleIds ?? [])];
-  const requireEmailVerification = options.requireEmailVerification ?? false;
 
   if (!email || !password || !firstName || !lastName) return null;
   if (password.length < 8) return null;
@@ -121,7 +120,7 @@ export async function createNewUser(
         lastName,
         fullName,
         active: true,
-        emailVerifiedAt: requireEmailVerification ? null : new Date(),
+        emailVerifiedAt: new Date(),
       },
       tx,
     );
@@ -132,18 +131,7 @@ export async function createNewUser(
 
   if (!created) return null;
 
-  let verificationSent = false;
-  if (requireEmailVerification) {
-    const { issueEmailVerification } = await import("../authentication/email-verification.service.js");
-    const issued = await issueEmailVerification(
-      created.user.id,
-      created.user.email,
-      created.user.firstName || undefined,
-    );
-    verificationSent = issued.sent.ok;
-  }
-
-  return { user: toUserDTO(created.user, created.roleIds), verificationSent };
+  return { user: toUserDTO(created.user, created.roleIds) };
 }
 
 export async function updateUser(

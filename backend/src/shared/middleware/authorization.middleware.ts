@@ -7,6 +7,7 @@ const publicRoutes: Array<{ method?: string; pattern: RegExp }> = [
   { pattern: /^\/openapi\.json(?:\/|$)/ },
   { method: "POST", pattern: /^\/api\/auth\/login(?:\/|$)/ },
   { method: "POST", pattern: /^\/api\/auth\/google(?:\/|$)/ },
+  { method: "POST", pattern: /^\/api\/auth\/verify-email(?:\/|$)/ },
   { method: "POST", pattern: /^\/api\/auth\/verify-otp(?:\/|$)/ },
   { method: "POST", pattern: /^\/api\/auth\/resend-verification(?:\/|$)/ },
   { method: "GET", pattern: /^\/api\/products\/?$/ },

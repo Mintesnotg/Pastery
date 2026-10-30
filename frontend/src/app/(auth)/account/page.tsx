@@ -303,11 +303,40 @@ function AccountPageInner() {
     }
   };
 
-  const goToVerify = (email: string) => {
-    const next = searchParams.get("next");
-    const qs = new URLSearchParams({ email });
-    if (next) qs.set("next", next);
-    router.push(`/account/verify?${qs.toString()}`);
+  const handleResendVerification = async () => {
+    setApiError("");
+    setSuccessMessage("");
+    const parsed = registerSchema.safeParse(registerForm);
+    if (!parsed.success) {
+      setApiError("Enter the same registration details to resend the verification link.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/auth/resend-verification"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          firstName: parsed.data.firstName,
+          lastName: parsed.data.lastName,
+          email: parsed.data.email,
+          password: parsed.data.password,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((data as { error?: string }).error || "Could not resend link");
+      }
+      setSuccessMessage(
+        (data as { message?: string }).message ||
+          "Verification link sent. Check your email.",
+      );
+    } catch (err) {
+      setApiError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -340,7 +369,11 @@ function AccountPageInner() {
       if (e.message === "EMAIL_NOT_VERIFIED") {
         const pendingEmail = e.email ?? email;
         setPendingVerifyEmail(pendingEmail);
-        goToVerify(pendingEmail);
+        setApiError(
+          "This email is not verified. Open the link from your email, or register again to get a new link.",
+        );
+        setTab("register");
+        setRegisterForm((prev) => ({ ...prev, email: pendingEmail }));
         return;
       } else {
         setApiError(e.message);
@@ -389,7 +422,10 @@ function AccountPageInner() {
         email: pendingEmail,
         password: "",
       }));
-      goToVerify(pendingEmail);
+      setSuccessMessage(
+        (data as { message?: string }).message ||
+          "Check your email for a verification link. Your account is created after you confirm.",
+      );
       return;
     } catch (err) {
       setApiError((err as Error).message);
@@ -554,17 +590,6 @@ function AccountPageInner() {
                 {apiError && tab === "login" && !loginErrors.password && (
                   <p className="text-sm text-red-600">{apiError}</p>
                 )}
-                {pendingVerifyEmail && tab === "login" && (
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={() => goToVerify(pendingVerifyEmail)}
-                    className="w-full cursor-pointer rounded-full border border-[#E6D9CB] bg-[#FFF8F3] px-4 py-2.5 text-sm font-medium text-[#734F32] transition hover:bg-[#FDEBDD] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Enter verification code
-                  </button>
-                )}
-
                 <button
                   type="submit"
                   disabled={loading}
@@ -701,6 +726,17 @@ function AccountPageInner() {
                   <p className="text-sm text-green-700">{successMessage}</p>
                 )}
 
+                {pendingVerifyEmail && tab === "register" && successMessage ? (
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => void handleResendVerification()}
+                    className="w-full cursor-pointer rounded-full border border-[#E6D9CB] bg-[#FFF8F3] px-4 py-2.5 text-sm font-medium text-[#734F32] transition hover:bg-[#FDEBDD] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {loading ? "Sending…" : "Resend verification link"}
+                  </button>
+                ) : null}
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -708,7 +744,11 @@ function AccountPageInner() {
                   style={{ backgroundColor: BROWN }}
                 >
                   {loading && tab === "register" && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {loading && tab === "register" ? "Creating account…" : "Create account"}
+                  {loading && tab === "register"
+                    ? "Sending link…"
+                    : pendingVerifyEmail && successMessage
+                      ? "Send another link"
+                      : "Create account"}
                   {!(loading && tab === "register") && <ArrowRight size={16} />}
                 </button>
 
