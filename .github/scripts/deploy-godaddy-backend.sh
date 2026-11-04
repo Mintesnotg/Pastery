@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Upload the backend folder to GoDaddy Node.js Hosting and publish it.
+# The app is attached to the existing Web Hosting Deluxe plan. Do not buy another plan.
 # Requires GDDY_PAT and GODADDY_APP_ID. package.json must be at the zip root.
 set -euo pipefail
 
