@@ -10,5 +10,11 @@ if (json) {
   process.exit(0);
 }
 
+const number = text.match(new RegExp(`"${key}"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)`));
+if (number) {
+  process.stdout.write(number[1]);
+  process.exit(0);
+}
+
 const yaml = text.match(new RegExp(`(?:^|\\n)\\s*${key}\\s*:\\s*"?([^"\\n,]+)"?`, "i"));
 if (yaml) process.stdout.write(yaml[1].trim());

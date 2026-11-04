@@ -127,8 +127,45 @@ fi
 
 wait_for "Source import" gddy hosting source status --env prod --app-id "$GODADDY_APP_ID" --import-id "$import_id"
 
+attach_existing_plan() {
+  local out=""
+  local code=0
+  local plan=""
+  local slots=""
+  set +e
+  out="$(gddy hosting subscription list --env prod --hosting-product WEB_HOSTING --timeout 60s 2>&1)"
+  code=$?
+  set -e
+  printf '%s\n' "$out"
+  if [[ "$code" -ne 0 ]]; then
+    fail "Could not list the existing Web Hosting plan. Add hosting.subscription:read and hosting.subscription:write to the personal access token, then update the GDDY_PAT secret. $(redact "$out")"
+  fi
+  plan="$(pick_field "$out" subscriptionId || true)"
+  slots="$(pick_field "$out" availableSlots || true)"
+  if [[ -z "$plan" ]]; then
+    fail "No Web Hosting plan was found. Nothing was purchased. $(redact "$out")"
+  fi
+  if [[ "$slots" == "0" ]]; then
+    fail "The Web Hosting plan ${plan} has no free app slots. Nothing was purchased."
+  fi
+  note "Attaching the existing Web Hosting plan ${plan}"
+  run_gddy gddy hosting subscription attach --env prod --app-id "$GODADDY_APP_ID" --subscription-id "$plan"
+}
+
 note "Publishing ${GODADDY_APP_ID}"
-run_gddy gddy hosting deployment publish --env prod --app-id "$GODADDY_APP_ID"
+set +e
+publish_out="$(gddy hosting deployment publish --env prod --app-id "$GODADDY_APP_ID" --timeout 90s 2>&1)"
+publish_code=$?
+set -e
+printf '%s\n' "$publish_out"
+if [[ "$publish_code" -ne 0 && "$publish_out" == *"WH_PLAN_REQUIRED"* ]]; then
+  attach_existing_plan
+  run_gddy gddy hosting deployment publish --env prod --app-id "$GODADDY_APP_ID"
+  publish_out="$GD_OUT"
+elif [[ "$publish_code" -ne 0 ]]; then
+  fail "$(redact "$publish_out")"
+fi
+GD_OUT="$publish_out"
 deployment_id="$(pick_field "$GD_OUT" deploymentId || true)"
 if [[ -z "$deployment_id" ]]; then
   fail "Could not read deploymentId from the publish response. $(redact "$GD_OUT")"
