@@ -1,7 +1,7 @@
 import {
   Building2,
   ClipboardList,
-  Ellipsis,
+  DollarSign,
   Factory,
   FileText,
   FolderTree,
@@ -118,6 +118,12 @@ export const sidebarConfig: SidebarItem[] = [
         route: "/production",
         icon: Factory,
         permission: "view.production",
+      },
+      {
+        name: "Prepaid orders",
+        route: "/prepaid-orders",
+        icon: DollarSign,
+        permission: "view.orders",
       },
       {
         name: "Standing orders",

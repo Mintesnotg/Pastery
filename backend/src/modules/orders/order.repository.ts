@@ -19,9 +19,20 @@ export async function createOrderItems(items: OrderItemInsertInput[]) {
 export type ListOrdersFilters = {
   userId?: string;
   pickupDate?: string;
+  /** YYYY-MM-DD — filter by order placed day (createdAt, UTC day bounds). */
+  createdDate?: string;
   channel?: "retail" | "wholesale" | "custom";
   status?: string;
 };
+
+function utcDayRange(ymd: string): { gte: Date; lt: Date } | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
+  const gte = new Date(`${ymd}T00:00:00.000Z`);
+  if (Number.isNaN(gte.getTime())) return null;
+  const lt = new Date(gte);
+  lt.setUTCDate(lt.getUTCDate() + 1);
+  return { gte, lt };
+}
 
 export async function listOrders(filters: ListOrdersFilters = {}) {
   const where: Prisma.OrderWhereInput = {};
@@ -29,11 +40,15 @@ export async function listOrders(filters: ListOrdersFilters = {}) {
   if (filters.pickupDate) where.pickupDate = filters.pickupDate;
   if (filters.channel) where.channel = filters.channel;
   if (filters.status) where.status = filters.status as never;
+  if (filters.createdDate) {
+    const range = utcDayRange(filters.createdDate);
+    if (range) where.createdAt = { gte: range.gte, lt: range.lt };
+  }
 
   return prisma.order.findMany({
     where: Object.keys(where).length ? where : undefined,
     include: { deliveryNote: true },
-    orderBy: [{ pickupTime: "asc" }, { createdAt: "desc" }],
+    orderBy: [{ createdAt: "desc" }, { pickupTime: "asc" }],
   });
 }
 

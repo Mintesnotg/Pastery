@@ -5,7 +5,12 @@ export const openapiSpec = {
     version: "1.0.0",
     description: "Backend API documentation for products, orders, messages, auth, and account management.",
   },
-  servers: [{ url: "http://localhost:4000" }],
+  // Relative "/" so Swagger UI calls the same host that served /docs (local or published).
+  // Absolute localhost made published Swagger "Failed to fetch" / fake CORS errors.
+  servers: [
+    { url: "/", description: "Current host" },
+    { url: "http://localhost:4000", description: "Local development" },
+  ],
   tags: [
     { name: "Health" },
     { name: "Products" },
