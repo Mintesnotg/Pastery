@@ -95,7 +95,56 @@ export default function CafeStandingOrdersPage() {
         showToast((data as { error?: string }).error ?? "Failed to load standing orders", "error");
         return;
       }
-      setRows(await listRes.json());
+      const data = (await listRes.json()) as StandingOrder[];
+      // #region agent log
+      {
+        const collisions = data.flatMap((row) => {
+          const byProduct = new Map<number, number>();
+          for (const i of row.items ?? []) {
+            byProduct.set(i.product_id, (byProduct.get(i.product_id) ?? 0) + 1);
+          }
+          const dupProducts = [...byProduct.entries()].filter(([, n]) => n > 1);
+          if (!dupProducts.length) return [];
+          return [
+            {
+              rowId: row.id,
+              dupProducts,
+              items: (row.items ?? []).map((i) => ({
+                id: i.id ?? null,
+                product_id: i.product_id,
+                quantity: i.quantity,
+              })),
+            },
+          ];
+        });
+        fetch("http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "5692c9",
+          },
+          body: JSON.stringify({
+            sessionId: "5692c9",
+            runId: "pre-fix",
+            hypothesisId: "A,B,D",
+            location: "standing-orders/page.tsx:load",
+            message: "standing order items key collision scan",
+            data: {
+              rowCount: data.length,
+              collisions,
+              sampleKeys: data.slice(0, 3).flatMap((row) =>
+                (row.items ?? []).map((i) => ({
+                  key: `${row.id}-${i.product_id}`,
+                  itemId: i.id ?? null,
+                })),
+              ),
+            },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+      }
+      // #endregion
+      setRows(data);
     } finally {
       setLoading(false);
     }
@@ -301,11 +350,47 @@ export default function CafeStandingOrdersPage() {
                     ) : null}
                   </td>
                   <td className="px-3 py-3">
-                    {row.items.map((i) => (
-                      <div key={`${row.id}-${i.product_id}`}>
-                        {i.quantity}× {i.product_name ?? `#${i.product_id}`}
-                      </div>
-                    ))}
+                    {row.items.map((i, itemIndex) => {
+                      const reactKey =
+                        i.id != null ? `item-${i.id}` : `${row.id}-${i.product_id}-${itemIndex}`;
+                      // #region agent log
+                      if (itemIndex === 0) {
+                        const keys = row.items.map((x, idx) =>
+                          x.id != null ? `item-${x.id}` : `${row.id}-${x.product_id}-${idx}`,
+                        );
+                        const hasDup = new Set(keys).size !== keys.length;
+                        fetch(
+                          "http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac",
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                              "X-Debug-Session-Id": "5692c9",
+                            },
+                            body: JSON.stringify({
+                              sessionId: "5692c9",
+                              runId: "post-fix",
+                              hypothesisId: "B",
+                              location: "standing-orders/page.tsx:items-render",
+                              message: "standing order item React keys uniqueness check",
+                              data: {
+                                rowId: row.id,
+                                keys,
+                                hasDup,
+                                itemIds: row.items.map((x) => x.id ?? null),
+                              },
+                              timestamp: Date.now(),
+                            }),
+                          },
+                        ).catch(() => {});
+                      }
+                      // #endregion
+                      return (
+                        <div key={reactKey}>
+                          {i.quantity}× {i.product_name ?? `#${i.product_id}`}
+                        </div>
+                      );
+                    })}
                   </td>
                   <td className="px-3 py-3">
                     <span

@@ -22,6 +22,11 @@ export async function listOrdersController(req: Request, res: Response) {
       typeof req.query.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)
         ? req.query.date
         : undefined;
+    const createdDate =
+      typeof req.query.createdDate === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(req.query.createdDate)
+        ? req.query.createdDate
+        : undefined;
     const channelRaw = typeof req.query.channel === "string" ? req.query.channel : undefined;
     const channel =
       channelRaw === "retail" || channelRaw === "wholesale" || channelRaw === "custom"
@@ -32,6 +37,7 @@ export async function listOrdersController(req: Request, res: Response) {
     const rows = await getOrdersWithItems({
       userId: canViewAll ? undefined : req.auth.userId,
       pickupDate: canViewAll ? date : undefined,
+      createdDate: canViewAll ? createdDate : undefined,
       channel: canViewAll ? channel : undefined,
       status: canViewAll ? status : undefined,
     });

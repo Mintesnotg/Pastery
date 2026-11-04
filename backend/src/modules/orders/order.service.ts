@@ -71,6 +71,7 @@ async function enrichItemsWithProductImages(items: OrderItemRow[]) {
 export type OrderListFilters = {
   userId?: string;
   pickupDate?: string;
+  createdDate?: string;
   channel?: "retail" | "wholesale" | "custom";
   status?: string;
 };

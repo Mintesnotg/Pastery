@@ -30,12 +30,59 @@ export const app = express();
 app.use(cors({ origin: env.corsOrigin, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+
+// #region agent log
+app.use((req, _res, next) => {
+  const path = req.path;
+  if (path === "/health" || path.startsWith("/api/") || path === "/openapi.json" || path === "/docs/swagger.json") {
+    fetch("http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "5f8d11" },
+      body: JSON.stringify({
+        sessionId: "5f8d11",
+        hypothesisId: "A,B,C",
+        location: "app.ts:cors-probe",
+        message: "incoming request origin vs corsOrigin",
+        data: {
+          path,
+          method: req.method,
+          origin: req.get("Origin") ?? null,
+          host: req.get("Host") ?? null,
+          corsOrigin: env.corsOrigin,
+          openapiServers: openapiSpec.servers,
+        },
+        timestamp: Date.now(),
+        runId: "pre-fix",
+      }),
+    }).catch(() => {});
+  }
+  next();
+});
+// #endregion
+
 app.use(authenticationMiddleware);
 app.use(permissionsMiddleware);
 app.use(authorizationMiddleware);
 
 app.get("/", (_req, res) => res.json({ ok: true, service: "house-of-bread-backend" }));
-app.get("/openapi.json", (_req, res) => res.json(openapiSpec));
+app.get("/openapi.json", (_req, res) => {
+  // #region agent log
+  fetch("http://127.0.0.1:7277/ingest/8fd3327a-15d9-4b20-bdf5-fb2bcccb11ac", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "5f8d11" },
+    body: JSON.stringify({
+      sessionId: "5f8d11",
+      hypothesisId: "A",
+      location: "app.ts:openapi.json",
+      message: "serving openapi servers",
+      data: { servers: openapiSpec.servers },
+      timestamp: Date.now(),
+      runId: "pre-fix",
+    }),
+  }).catch(() => {});
+  // #endregion
+  res.json(openapiSpec);
+});
 app.get("/docs/swagger.json", (_req, res) => res.json(openapiSpec));
 app.use("/docs", swaggerMiddleware, swaggerHandler);
 app.use("/health", healthRouter);
