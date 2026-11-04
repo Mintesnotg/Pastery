@@ -44,5 +44,6 @@ jobs:
       - name: Upload backend and publish
         env:
           GDDY_PAT: ${{ secrets.GDDY_PAT }}
+          GDDY_PAT_PROD: ${{ secrets.GDDY_PAT }}
           GODADDY_APP_ID: ${{ secrets.GODADDY_APP_ID }}
         run: bash .github/scripts/deploy-godaddy-backend.sh

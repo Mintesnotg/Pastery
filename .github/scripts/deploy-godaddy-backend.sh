@@ -55,7 +55,7 @@ wait_for() {
 
 echo "Uploading backend to ${GODADDY_APP_ID}"
 set +e
-upload_out="$(gddy hosting source upload --app-id "$GODADDY_APP_ID" --file "$ZIP" 2>&1)"
+upload_out="$(gddy hosting source upload --env prod --app-id "$GODADDY_APP_ID" --file "$ZIP" 2>&1)"
 upload_code=$?
 set -e
 echo "$upload_out"
@@ -68,11 +68,11 @@ if [[ -z "$import_id" ]]; then
   exit 1
 fi
 
-wait_for "Source import" gddy hosting source status --app-id "$GODADDY_APP_ID" --import-id "$import_id"
+wait_for "Source import" gddy hosting source status --env prod --app-id "$GODADDY_APP_ID" --import-id "$import_id"
 
 echo "Publishing ${GODADDY_APP_ID}"
 set +e
-publish_out="$(gddy hosting deployment publish --app-id "$GODADDY_APP_ID" 2>&1)"
+publish_out="$(gddy hosting deployment publish --env prod --app-id "$GODADDY_APP_ID" 2>&1)"
 publish_code=$?
 set -e
 echo "$publish_out"
@@ -85,5 +85,5 @@ if [[ -z "$deployment_id" ]]; then
   exit 1
 fi
 
-wait_for "Publish" gddy hosting deployment get --app-id "$GODADDY_APP_ID" --deployment-id "$deployment_id"
+wait_for "Publish" gddy hosting deployment get --env prod --app-id "$GODADDY_APP_ID" --deployment-id "$deployment_id"
 echo "Published ${GODADDY_APP_ID}"
