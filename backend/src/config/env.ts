@@ -40,7 +40,7 @@ const databaseUrl = resolveDatabaseUrl();
 process.env.DATABASE_URL = databaseUrl;
 
 export const env = {
-  port: Number(process.env.PORT ?? 4000),
+  port: Number(process.env.PORT) || 4000,
   databaseUrl,
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:3000",
   jwtSecret: required("JWT_SECRET", "dev-secret-change-me"),
