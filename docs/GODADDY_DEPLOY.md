@@ -97,7 +97,7 @@ Workflow: [`.github/workflows/frontend-godaddy.yml`](../.github/workflows/fronte
 - A push to `main`, or a manual **Run workflow**, zips **`frontend/`** only and publishes that zip.
 - The backend app is not updated by this workflow.
 
-The frontend app id is `NODEJS-ik3po8u6c4`. This workflow publishes only that app. It does not use `GODADDY_APP_ID`, so the API app stays unchanged.
+The frontend app id is `NODEJS-593mi86dhz`. This workflow publishes only that app. It does not use `GODADDY_APP_ID`, so the API app stays unchanged.
 
 `next build` runs in GitHub and bakes `NEXT_PUBLIC_BACKEND_URL` into the pages. The workflow sets that to `https://qxcqywgrw1.c40.airoapp.ai`. The zip then tells GoDaddy to start the already built app with `next start -H 0.0.0.0`. Local `frontend/.env` still points at `http://localhost:4000`.
 
