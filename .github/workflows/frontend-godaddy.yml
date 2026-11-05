@@ -47,5 +47,5 @@ jobs:
         env:
           GDDY_PAT: ${{ secrets.GDDY_PAT }}
           GDDY_PAT_PROD: ${{ secrets.GDDY_PAT }}
-          GODADDY_APP_ID: ${{ secrets.GODADDY_FRONTEND_APP_ID }}
+          GODADDY_APP_ID: NODEJS-ik3po8u6c4
         run: bash .github/scripts/deploy-godaddy-frontend.sh
