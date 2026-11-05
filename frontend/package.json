@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "node scripts/run-dev.js",
-    "build": "next build --webpack",
+    "build": "node scripts/build-hosted.js",
     "start": "next start -H 0.0.0.0",
     "backend:dev": "npm --prefix ../backend run dev",
     "backend:build": "npm --prefix ../backend run build",
