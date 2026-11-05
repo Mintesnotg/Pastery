@@ -14,12 +14,13 @@ function run(args) {
   process.exit(result.status ?? 1);
 }
 
-// GoDaddy runs `npm run dev` and assigns PORT. Turbopack cannot bind its
-// extra port there, so the hosted process serves the production build.
+// GoDaddy runs `npm run dev` and assigns PORT. Turbopack tries to bind
+// another port while compiling CSS, and the host rejects that. Webpack
+// does not, so the hosted process builds with webpack and then serves it.
 if (process.env.PORT) {
   const buildId = path.join(root, ".next", "BUILD_ID");
   if (!fs.existsSync(buildId)) {
-    const build = spawnSync(process.execPath, [nextBin, "build"], {
+    const build = spawnSync(process.execPath, [nextBin, "build", "--webpack"], {
       cwd: root,
       stdio: "inherit",
       env: process.env,
