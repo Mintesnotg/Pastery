@@ -13,6 +13,9 @@ console.log("HOSTED_BUILD_START");
 const env = { ...process.env };
 delete env.TURBOPACK;
 delete env.IS_TURBOPACK_TEST;
+// GoDaddy sets a custom NODE_ENV. Next.js then prerenders with a broken
+// React dispatcher (useContext is null) and the build stops.
+env.NODE_ENV = "production";
 
 const result = spawnSync(process.execPath, [nextBin, "build", "--webpack"], {
   cwd: root,
