@@ -24,6 +24,8 @@ jobs:
     defaults:
       run:
         working-directory: frontend
+    env:
+      NEXT_PUBLIC_BACKEND_URL: https://qxcqywgrw1.c40.airoapp.ai
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -53,4 +55,5 @@ jobs:
           GDDY_PAT: ${{ secrets.GDDY_PAT }}
           GDDY_PAT_PROD: ${{ secrets.GDDY_PAT }}
           GODADDY_APP_ID: NODEJS-ik3po8u6c4
+          NEXT_PUBLIC_BACKEND_URL: https://qxcqywgrw1.c40.airoapp.ai
         run: bash .github/scripts/deploy-godaddy-frontend.sh
