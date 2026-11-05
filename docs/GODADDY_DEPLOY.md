@@ -68,6 +68,11 @@ Workflow: [`.github/workflows/backend-godaddy.yml`](../.github/workflows/backend
 - Every push and pull request that touches `backend/` installs, builds, and runs tests.
 - A push to `main`, or a manual **Run workflow**, uploads the backend and publishes it.
 
+Frontend workflow: [`.github/workflows/frontend-godaddy.yml`](../.github/workflows/frontend-godaddy.yml).
+
+- A push to `main` that changes `frontend/` zips that folder only and publishes it to a second Node.js app on the same Deluxe plan.
+- Add GitHub secret `GODADDY_FRONTEND_APP_ID` with that app's `NODEJS-…` id. `GDDY_PAT` is the same token used by the backend workflow.
+
 One-time setup in GoDaddy (CLI or hosting UI):
 
 1. Create a Node.js app and attach managed MySQL. Note the app id (`NODEJS-…`).
@@ -91,7 +96,7 @@ Deploy settings if you upload a zip by hand:
 
 | Variable | Example |
 |---|---|
-| `NEXT_PUBLIC_BACKEND_URL` | `https://your-api-host` (no trailing slash) |
+| `NEXT_PUBLIC_BACKEND_URL` | `https://api.houseofbreadlondon.co.uk` (no trailing slash). The frontend build uses this when the variable is unset. |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | same as Google OAuth client |
 
 Deploy settings:

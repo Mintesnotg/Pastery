@@ -3,8 +3,13 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
+const backendUrl =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.houseofbreadlondon.co.uk";
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_BACKEND_URL: backendUrl,
+  },
   turbopack: {
     root: projectRoot,
   },
