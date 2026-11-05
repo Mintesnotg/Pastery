@@ -59,10 +59,36 @@ Also set:
 
 Do **not** upload `.env`. `start` runs `prisma migrate deploy` then `node dist/server.js`.
 
-Deploy settings:
+This repo is a monorepo. GoDaddy runs one app per upload, and `package.json` has to sit at the root of that upload. The GitHub Action zips **`backend/`** only (no `node_modules`, no `.env`) and publishes that zip. Connecting the whole GitHub repository in the hosting UI would build the workspace root, which is not this API.
 
-- Root / source directory: **`backend`**
-- Branch: prefer `main` (or your release branch)
+## GitHub CI/CD
+
+Workflow: [`.github/workflows/backend-godaddy.yml`](../.github/workflows/backend-godaddy.yml).
+
+- Every push and pull request that touches `backend/` installs, builds, and runs tests.
+- A push to `main`, or a manual **Run workflow**, uploads the backend and publishes it.
+
+Frontend workflow: [`.github/workflows/frontend-godaddy.yml`](../.github/workflows/frontend-godaddy.yml).
+
+- A push to `main` that changes `frontend/` zips that folder only and publishes it to a second Node.js app on the same Deluxe plan.
+- Add GitHub secret `GODADDY_FRONTEND_APP_ID` with that app's `NODEJS-…` id. `GDDY_PAT` is the same token used by the backend workflow.
+
+One-time setup in GoDaddy (CLI or hosting UI):
+
+1. Create a Node.js app and attach managed MySQL. Note the app id (`NODEJS-…`).
+2. Attach the app to the Web Hosting plan, then publish once so later deploys have a plan.
+3. In the hosting UI, set the variables below for **publish** (and preview, if you use it). The platform sets `PORT` and the five `DB_*` values itself.
+4. Create a Personal Access Token with `hosting.source:read`, `hosting.source:write`, and `hosting.deployment:execute`.
+5. In the GitHub repo, add secrets:
+   - `GDDY_PAT` — that token
+   - `GODADDY_APP_ID` — the `NODEJS-…` id
+
+After that, merging to `main` builds the API and publishes it. Preview and production share one MySQL database, so a publish runs `prisma migrate deploy` against that database.
+
+Deploy settings if you upload a zip by hand:
+
+- Zip the **`backend`** folder so `package.json` is at the top of the zip
+- Exclude `node_modules`, `dist`, and `.env`
 - Runtime: Node.js 22
 - Attach managed MySQL to this app
 
@@ -70,7 +96,7 @@ Deploy settings:
 
 | Variable | Example |
 |---|---|
-| `NEXT_PUBLIC_BACKEND_URL` | `https://your-api-host` (no trailing slash) |
+| `NEXT_PUBLIC_BACKEND_URL` | `https://api.houseofbreadlondon.co.uk` (no trailing slash). The frontend build uses this when the variable is unset. |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | same as Google OAuth client |
 
 Deploy settings:
