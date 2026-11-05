@@ -13,7 +13,11 @@ if (fs.existsSync(buildId) && !fs.existsSync(errorFile)) {
   const child = spawn(
     process.execPath,
     [nextBin, "start", "-H", "0.0.0.0", "-p", String(port)],
-    { cwd: root, stdio: "inherit", env: process.env },
+    {
+      cwd: root,
+      stdio: "inherit",
+      env: { ...process.env, NODE_ENV: "production" },
+    },
   );
   child.on("exit", (code) => process.exit(code ?? 1));
 } else {
