@@ -22,4 +22,5 @@ function run(cmd, args) {
 }
 
 run("npx", ["prisma", "migrate", "deploy"]);
+run("node", ["dist/bootstrap/ensure-admin-cli.js"]);
 run("node", ["dist/server.js"]);
