@@ -7,7 +7,7 @@
     "node": "22.x"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/run-dev.js",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "backend:dev": "npm --prefix ../backend run dev",
