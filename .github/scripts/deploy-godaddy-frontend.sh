@@ -47,17 +47,35 @@ fi
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 ZIP="${RUNNER_TEMP:-/tmp}/frontend-app.zip"
-rm -f "$ZIP"
+STAGE="${RUNNER_TEMP:-/tmp}/frontend-stage"
+rm -rf "$ZIP" "$STAGE"
+mkdir -p "$STAGE"
+
+tar -C "$ROOT/frontend" \
+  --exclude=node_modules \
+  --exclude=.next \
+  --exclude=.env \
+  --exclude=.env.local \
+  --exclude=.env.production \
+  --exclude=coverage \
+  -cf - . | tar -C "$STAGE" -xf -
 
 (
-  cd "$ROOT/frontend"
-  zip -r "$ZIP" . \
-    -x "node_modules/*" \
-    -x ".env" \
-    -x ".env.*" \
-    -x ".next/*" \
-    -x "coverage/*" \
-    -x "*.log"
+  cd "$STAGE"
+  npm ci
+  npm run build
+  test -f .next/BUILD_ID
+  node <<'NODE'
+const fs = require("fs");
+const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+pkg.scripts.build = "echo build";
+pkg.scripts.start = "next start -H 0.0.0.0";
+delete pkg.scripts["backend:dev"];
+delete pkg.scripts["backend:build"];
+fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+NODE
+  rm -rf node_modules
+  zip -r "$ZIP" . -x "*.log"
 )
 
 pick_field() {
