@@ -13,6 +13,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: projectRoot,
   },
+  experimental: {
+    // The host allows one listening port. One worker, and no Turbopack
+    // child process, keeps the production build inside that limit.
+    cpus: 1,
+    turbopackPluginRuntimeStrategy: "workerThreads",
+  },
   images: {
     remotePatterns: [
       {

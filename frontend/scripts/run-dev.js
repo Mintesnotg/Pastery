@@ -20,7 +20,7 @@ function run(args) {
 if (process.env.PORT) {
   const buildId = path.join(root, ".next", "BUILD_ID");
   if (!fs.existsSync(buildId)) {
-    const build = spawnSync(process.execPath, [nextBin, "build", "--webpack"], {
+    const build = spawnSync(process.execPath, [path.join(__dirname, "build-hosted.js")], {
       cwd: root,
       stdio: "inherit",
       env: process.env,
