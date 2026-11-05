@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "node scripts/run-dev.js",
     "build": "node scripts/build-hosted.js",
-    "start": "next start -H 0.0.0.0",
+    "start": "node scripts/serve.js",
     "backend:dev": "npm --prefix ../backend run dev",
     "backend:build": "npm --prefix ../backend run build",
     "lint": "eslint .",

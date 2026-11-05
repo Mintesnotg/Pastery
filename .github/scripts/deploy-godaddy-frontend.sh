@@ -57,7 +57,8 @@ rm -f "$ZIP"
     -x ".env" \
     -x ".env.*" \
     -x "coverage/*" \
-    -x "*.log"
+    -x "*.log" \
+    -x ".build-error.txt"
 )
 
 pick_field() {
