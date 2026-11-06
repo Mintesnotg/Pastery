@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { apiUrl } from "@/lib/api";
+import { apiFetch, setSessionToken } from "@/lib/api";
 
 const BROWN = "#734F32";
 const INK = "#3F2A18";
@@ -38,16 +38,17 @@ function VerifyInner() {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch(apiUrl("/api/auth/verify-email"), {
+        const res = await apiFetch("/api/auth/verify-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({ token }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           throw new Error((data as { error?: string }).error || "Verification failed");
         }
+        const sessionToken = (data as { token?: string }).token;
+        if (sessionToken) setSessionToken(sessionToken);
         setSuccess((data as { message?: string }).message || "Email verified. Redirecting…");
         router.replace(redirectAfterAuth(next));
       } catch (err) {

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Toast, useToast } from "@/components/ui/Toast";
 import { useCart } from "@/context/CartContext";
-import { apiUrl, withPermission } from "@/lib/api";
+import { apiFetch, apiUrl, withPermission } from "@/lib/api";
 import {
   earliestFulfillmentDate,
   fetchPublicOrderSettings,
@@ -98,7 +98,7 @@ export default function OrderCheckout({
 
     (async () => {
       try {
-        const res = await fetch(apiUrl("/api/auth/me"), { credentials: "include" });
+        const res = await apiFetch("/api/auth/me");
         if (!res.ok) {
           if (!cancelled) setIsAuthenticated(false);
           return;
@@ -118,9 +118,7 @@ export default function OrderCheckout({
         }));
 
         if (variant === "dashboard") {
-          const baRes = await fetch(apiUrl("/api/business-accounts/me"), {
-            credentials: "include",
-          });
+          const baRes = await apiFetch("/api/business-accounts/me");
           if (!cancelled && baRes.ok) {
             const account = await baRes.json();
             if (account?.approval_status === "approved") {

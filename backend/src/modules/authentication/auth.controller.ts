@@ -195,6 +195,12 @@ export async function updateMeController(req: AuthedRequest, res: Response) {
 }
 
 export async function logoutController(_req: Request, res: Response) {
-  res.clearCookie("session", { path: "/" });
+  const isProd = process.env.NODE_ENV === "production";
+  res.clearCookie("session", {
+    path: "/",
+    httpOnly: true,
+    sameSite: isProd ? "none" : "lax",
+    secure: isProd,
+  });
   res.json({ success: true });
 }

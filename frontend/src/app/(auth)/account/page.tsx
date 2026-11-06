@@ -16,7 +16,7 @@ import {
   Lock,
   Mail,
 } from "lucide-react";
-import { apiUrl } from "@/lib/api";
+import { apiFetch, apiUrl, setSessionToken } from "@/lib/api";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 const BROWN = "#734F32";
@@ -258,10 +258,9 @@ function AccountPageInner() {
 
   const performLogin = async (email: string, password: string) => {
     const normalizedEmail = email.trim().toLowerCase();
-    const res = await fetch(apiUrl("/api/auth/login"), {
+    const res = await apiFetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify({ email: normalizedEmail, password }),
     });
     const data = await res.json().catch(() => ({}));
@@ -277,6 +276,8 @@ function AccountPageInner() {
           "Incorrect email or password. Please try again.",
       );
     }
+    const token = (data as { token?: string }).token;
+    if (token) setSessionToken(token);
     router.replace(redirectAfterAuth(searchParams.get("next")));
   };
 
@@ -285,16 +286,17 @@ function AccountPageInner() {
     setSuccessMessage("");
     setLoading(true);
     try {
-      const res = await fetch(apiUrl("/api/auth/google"), {
+      const res = await apiFetch("/api/auth/google", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ idToken }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error((data as { error?: string }).error || "Google sign-in failed");
       }
+      const token = (data as { token?: string }).token;
+      if (token) setSessionToken(token);
       router.replace(redirectAfterAuth(searchParams.get("next")));
     } catch (err) {
       setApiError((err as Error).message);

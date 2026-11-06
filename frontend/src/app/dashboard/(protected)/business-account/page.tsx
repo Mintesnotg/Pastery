@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useState } from "react";
 import { Building2, FileUp, Loader2, Upload } from "lucide-react";
 import { Toast, useToast } from "@/components/ui/Toast";
-import { apiUrl } from "@/lib/api";
+import { apiFetch, apiUrl, withAuth } from "@/lib/api";
 
 function FileUploadField({
   label,
@@ -145,7 +145,7 @@ export default function BusinessAccountPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(apiUrl("/api/business-accounts/me"), { credentials: "include" });
+      const res = await apiFetch("/api/business-accounts/me");
       if (res.status === 404) {
         setAccount(null);
         return;
@@ -194,11 +194,13 @@ export default function BusinessAccountPage() {
       body.append("business_id_doc", form.business_id_doc!);
       body.append("license_doc", form.license_doc!);
 
-      const res = await fetch(apiUrl("/api/business-accounts"), {
-        method: "POST",
-        credentials: "include",
-        body,
-      });
+      const res = await fetch(
+        apiUrl("/api/business-accounts"),
+        withAuth({
+          method: "POST",
+          body,
+        }),
+      );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         showToast((data as { error?: string }).error ?? "Application failed", "error");

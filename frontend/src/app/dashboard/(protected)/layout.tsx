@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronRight, LogOut, Menu, X } from "lucide-react";
 import { sidebarConfig, type SidebarItem } from "@/config/sidebar.config";
-import { apiUrl } from "@/lib/api";
+import { apiFetch, clearSessionToken } from "@/lib/api";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -143,7 +143,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    fetch(apiUrl("/api/auth/me"), { credentials: "include" })
+    apiFetch("/api/auth/me")
       .then(async (res) => {
         if (!res.ok) router.replace("/account");
         else {
@@ -157,7 +157,8 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   }, [router]);
 
   const handleSignOut = async () => {
-    await fetch(apiUrl("/api/auth/logout"), { method: "POST", credentials: "include" });
+    await apiFetch("/api/auth/logout", { method: "POST" });
+    clearSessionToken();
     router.replace("/account");
   };
 

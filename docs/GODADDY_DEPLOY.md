@@ -51,7 +51,7 @@ Also set:
 | `JWT_SECRET` | long random string |
 | `ADMIN_BOOTSTRAP_EMAIL` | admin@… |
 | `ADMIN_BOOTSTRAP_PASSWORD` | strong password |
-| `CORS_ORIGIN` | `https://your-frontend-host` |
+| `CORS_ORIGIN` | `https://houseofbreadlondon.co.uk` (exact site origin; comma-separated if multiple) |
 | `FRONTEND_URL` | same as frontend URL |
 | `EMAIL_TRANSPORT` | `godaddy` |
 | `GOOGLE_CLIENT_ID` | if using Google sign-in |

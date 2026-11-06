@@ -33,6 +33,15 @@ const nextConfig: NextConfig = {
       { source: "/admin/:path*", destination: "/dashboard/:path*", permanent: true },
     ];
   },
+  // Browser calls same-origin /api/* so session cookies are first-party on the site host.
+  // (Cross-host cookies to airoapp.ai are blocked → login works but /me is Unauthenticated.)
+  async rewrites() {
+    const target = backendUrl.replace(/\/+$/, "");
+    return [
+      { source: "/api/:path*", destination: `${target}/api/:path*` },
+      { source: "/health", destination: `${target}/health` },
+    ];
+  },
 };
 
 export default nextConfig;

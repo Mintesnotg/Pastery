@@ -1,4 +1,4 @@
-import { apiUrl, withPermission } from "@/lib/api";
+import { apiFetch, apiUrl, withPermission } from "@/lib/api";
 
 export type OrderItem = {
   id: number;
@@ -99,7 +99,7 @@ export function formatOrderDateTime(iso: string) {
 }
 
 export async function fetchOrders(): Promise<Order[]> {
-  const res = await fetch(apiUrl("/api/orders"), { credentials: "include" });
+  const res = await apiFetch("/api/orders");
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error((data as { error?: string }).error || "Failed to load orders");

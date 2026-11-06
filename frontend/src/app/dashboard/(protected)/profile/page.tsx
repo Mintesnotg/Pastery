@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Loader2, Pencil } from "lucide-react";
 import { Toast, useToast } from "@/components/ui/Toast";
-import { apiUrl, withPermission } from "@/lib/api";
+import { apiFetch, apiUrl, withPermission } from "@/lib/api";
 
 const BROWN = "#734F32";
 const PEACH = "#FDEBDD";
@@ -37,7 +37,7 @@ export default function ProfilePage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(apiUrl("/api/auth/me"), { credentials: "include" });
+        const res = await apiFetch("/api/auth/me");
         if (!res.ok) throw new Error("Failed to load profile");
         const data = await res.json();
         if (cancelled) return;

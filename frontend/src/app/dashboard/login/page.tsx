@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, ArrowRight, ArrowLeft } from "lucide-react";
 import { BreadSlice } from "@/components/BreadSlice";
-import { apiUrl } from "@/lib/api";
+import { apiFetch, setSessionToken } from "@/lib/api";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -17,10 +17,9 @@ export default function AdminLoginPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch(apiUrl("/api/auth/login"), {
+      const res = await apiFetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           email: form.email.trim().toLowerCase(),
           password: form.password,
@@ -28,6 +27,7 @@ export default function AdminLoginPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
+      if (data.token) setSessionToken(data.token);
       router.replace("/dashboard");
     } catch (err) {
       setError((err as Error).message);
