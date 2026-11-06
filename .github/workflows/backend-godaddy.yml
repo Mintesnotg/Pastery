@@ -1,0 +1,49 @@
+name: Backend GoDaddy
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-godaddy.yml"
+      - ".github/scripts/deploy-godaddy-backend.sh"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-godaddy.yml"
+      - ".github/scripts/deploy-godaddy-backend.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Production install and build
+        run: rm -rf node_modules && npm ci --omit=dev && npm run build && test -f dist/server.js
+
+  deploy:
+    needs: verify
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: godaddy/cli/action@action-v1
+      - name: Upload backend and publish
+        env:
+          GDDY_PAT: ${{ secrets.GDDY_PAT }}
+          GDDY_PAT_PROD: ${{ secrets.GDDY_PAT }}
+          GODADDY_APP_ID: ${{ secrets.GODADDY_APP_ID }}
+        run: bash .github/scripts/deploy-godaddy-backend.sh
